@@ -140,3 +140,7 @@ GitHub.sublime-settings
 !.vscode/launch.json 
 !.vscode/extensions.json 
 .history
+form/migrations
+user/migrations
+report/migrations/
+
