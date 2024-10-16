@@ -38,7 +38,7 @@ class Option(models.Model):
 class Answer(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    select = models.ManyToManyField(Option, max_length=255, null=True, blank=True, related_name='select')  # For checkbox 
+    select = models.ManyToManyField(Option, max_length=255, blank=True, related_name='select')  # For checkbox 
     option = models.ForeignKey(Option, null=True, blank=True, on_delete=models.SET_NULL, related_name='option')  # For test
     text = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
