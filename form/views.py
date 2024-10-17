@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from rest_framework import viewsets, exceptions
+from rest_framework import viewsets, exceptions, status
 from .models import Category, Form, Answer, Option, Question, Process
 from .serializers import CategorySerializer, AnswerSerializer, OptionSerializer, QuestionSerializer
 from .serializers import ProcessSerializer, FormSerializer
@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 import logging
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.urls import reverse
-
+from rest_framework.response import Response
 
 class IsOwner(permissions.BasePermission):
     """
@@ -31,7 +31,7 @@ class IsOwner(permissions.BasePermission):
         elif hasattr(obj, 'process'):  # For questions
             form = obj.process.form
         else:
-            return False
+            form = obj
 
       
         if request.method in permissions.SAFE_METHODS:
@@ -70,6 +70,7 @@ class ProcessViewSet(viewsets.ModelViewSet):
     queryset = Process.objects.all()
     serializer_class = ProcessSerializer
     permission_classes = [IsOwner]
+    
 
     def get_serializer(self, *args, **kwargs):
         kwargs['context'] = self.get_serializer_context()  
@@ -108,31 +109,18 @@ class FormViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         form = self.get_object()
-
-      
         if form.is_private:
-           
             password = request.query_params.get('password') or request.data.get('password')
-
             if not password:
                 raise exceptions.PermissionDenied("This form is private. Please provide a password.")
-            
-           
+        
             if form.password != password:
                 raise exceptions.PermissionDenied("Incorrect password. Access denied.")
 
         return super().retrieve(request, *args, **kwargs)
 
     def perform_create(self, serializer):
-        print("Authorization Header: ", self.request.headers.get('Authorization'))
-    
-   
-        print("User: ", self.request.user)
-        print("User is authenticated: ", self.request.user.is_authenticated)
-       
         form = serializer.save(user=self.request.user)
-        
-       
         form.url = self.request.build_absolute_uri(reverse('form-detail', args=[form.id]))
         form.save()
 
