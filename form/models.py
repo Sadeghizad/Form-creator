@@ -19,8 +19,14 @@ class Process(models.Model):
     password = models.CharField(max_length=100, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    order = models.IntegerField(default=0) 
+    is_private = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ['form', 'order']
 
 class Question(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     form = models.ForeignKey(Form, on_delete=models.CASCADE)
     process = models.ForeignKey(Process, on_delete=models.CASCADE)
     text = models.TextField()
@@ -28,6 +34,10 @@ class Question(models.Model):
     required = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    order = models.IntegerField(default=0) 
+
+    class Meta:
+        unique_together = ['process', 'order', 'form']
 
 class Option(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
