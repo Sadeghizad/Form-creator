@@ -21,7 +21,7 @@ from form.views import FormViewSet, ProcessViewSet, QuestionViewSet, OptionViewS
 from user.views import LoginView, SignUpView, UpdateProfileViewSet, ChangePasswordView
 
 router = DefaultRouter()
-router.register(r'forms', FormViewSet)
+router.register(r'forms', FormViewSet, basename='form')
 router.register(r'processes', ProcessViewSet)
 router.register(r'questions', QuestionViewSet)
 router.register(r'options', OptionViewSet)
