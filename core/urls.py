@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from form.views import FormViewSet, ProcessViewSet, QuestionViewSet, OptionViewSet, AnswerViewSet, CategoryViewSet
+from report.views import ReportAdminView, ReportAnswerView, ReportDefaualtView, ReportFormView, ReportProcessView, ReportRealtimeView
 from user.views import LoginView, SignUpView, UpdateProfileViewSet, ChangePasswordView
 
 router = DefaultRouter()
@@ -27,7 +28,15 @@ router.register(r'questions', QuestionViewSet)
 router.register(r'options', OptionViewSet)
 router.register(r'answers', AnswerViewSet)
 router.register(r'categories', CategoryViewSet)
-router.register(r'profile', UpdateProfileViewSet, basename='profile') 
+router.register(r'profile', UpdateProfileViewSet, basename='profile')
+
+router.register(r'report default',ReportDefaualtView)
+router.register(r'report form',ReportFormView)
+router.register(r'report process',ReportProcessView)
+router.register(r'report answer',ReportAnswerView)
+router.register(r'report realtime',ReportRealtimeView)
+router.register(r'report admin',ReportAdminView)
+
 
 
 urlpatterns = [
