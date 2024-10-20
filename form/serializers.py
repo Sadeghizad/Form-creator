@@ -77,7 +77,7 @@ class QuestionSerializer(serializers.ModelSerializer):
             last_order = Question.objects.filter(process=process).aggregate(Max('order'))['order__max'] or 0
             validated_data['order'] = last_order + 1
 
-        if Question.objects.filter(form=form, process=orcess, order=validated_data['order']).exists():
+        if Question.objects.filter(form=form, process=process, order=validated_data['order']).exists():
             raise serializers.ValidationError("The combination of form, process and order must be unique.")   
 
         return super().create(validated_data)    
@@ -106,7 +106,15 @@ class AnswerSerializer(serializers.ModelSerializer):
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = '__all__'        
+        exclude = ['user']
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        if user.role == 'admin' or user.is_staff:
+            validated_data['user'] = None  
+        else:
+            validated_data['user'] = self.context['request'].user 
+        return super().create(validated_data)            
 
 class FormSerializer(serializers.ModelSerializer):
     class Meta:
@@ -122,5 +130,13 @@ class FormSerializer(serializers.ModelSerializer):
         if data.get('is_private') and not data.get('password'):
             raise serializers.ValidationError("A password is required for private forms.")
         return data    
+
+    def validate_category(self, value):
+        user = self.context['request'].user
+        if value.user and value.user != user:
+            raise serializers.ValidationError('You are not allowed to add your form to this category.')
+
+        return value    
+
     
     
