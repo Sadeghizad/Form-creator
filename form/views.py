@@ -7,7 +7,7 @@ from .serializers import AnswerSerializer
 class AnswerSubmit(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = AnswerSerializer
-    def get_query(self):
+    def get_queryset(self):
         question = self.request.query_params.get('question_id', None)
         return Answer.objects.filter(user=self.request.user,question_id=question)
     def perform_create(self, serializer):
