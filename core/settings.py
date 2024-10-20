@@ -169,3 +169,18 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'sadeghizad.mf@gmail.com'
 EMAIL_HOST_PASSWORD = 'your-password'
 DEFAULT_FROM_EMAIL = 'formcreator@gmail.com'
+# settings.py
+CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Example broker, adjust accordingly
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+
+
+CELERY_BEAT_SCHEDULE = {
+    'update-form-stats-daily': {
+        'task': 'report.tasks.update_form_stats',
+        'schedule': timedelta(days=1),  # Adjust to your preferred timing
+    },
+    'generate-weekly-admin-report': {
+        'task': 'your_app.tasks.generate_admin_report',
+        'schedule': timedelta(weeks=1),  # Runs every week
+    },
+}
