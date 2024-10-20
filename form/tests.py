@@ -3,7 +3,7 @@ from django.urls import reverse
 from rest_framework.test import APITestCase
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from form.models import Form, Process
+from form.models import Form, Process, Question, Category
 
 User = get_user_model()
 
@@ -202,3 +202,154 @@ class ProcessTest(APITestCase):
         delete_response = self.client.delete(reverse('process-detail', args=[process_response.data['id']]))
         self.assertEqual(delete_response.status_code, status.HTTP_403_FORBIDDEN)
         
+
+class QuestionTest(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='user', password='pass')
+        self.client.force_authenticate(user=self.user) 
+
+        
+        self.other_user = User.objects.create_user(username='otheruser', password='pass1')
+
+        self.form = Form.objects.create(name='Test Form', user=self.user, is_private=False)
+
+        self.process = Process.objects.create(form=self.form, order=1, user=self.user)
+
+    def test_question_creation(self):
+            """Ensure a question can be created"""
+            question_data = {
+                'form': self.form.id,
+                'process': self.process.id,
+                'order': 1,
+                'text': 'What is your name?',
+                'type': 1
+            }
+            response = self.client.post(reverse('question-list'), question_data, format='json')
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+            self.assertEqual(Question.objects.count(), 1)   
+
+
+    def test_unique_order_form_process_combination(self):
+        """Ensure the combination of order, form, and process is unique"""
+        Question.objects.create(form=self.form, process=self.process, order=1, text="First question", type=1, user=self.user)
+
+        question_data = {
+            'form': self.form.id,
+            'process': self.process.id,
+            'order': 1,  # Same order
+            'text': 'other question',
+            'type': 1
+        }
+        response = self.client.post(reverse('question-list'), question_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        self.assertEqual(response.data[0], 'The combination of form, process and order must be unique.')         
+
+
+    def test_only_creator_can_create_question(self):
+        """Ensure only the creator of the process can create questions for it"""
+        self.client.logout()
+        self.client.login(username='otheruser', password='pass1')
+
+        question_data = {
+            'form': self.form.id,
+            'process': self.process.id,
+            'order': 5,
+            'text': 'question by other user',
+            'type': 1
+        }
+        response = self.client.post(reverse('question-list'), question_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data[0], 'You do not have permission to add questions to this process.')    
+
+
+class CategoryTests(APITestCase):
+    def setUp(self):
+
+
+        # Create an admin user and a regular user
+        self.admin_user = User.objects.create_superuser(  
+            username='admin_user',  
+            email='admin@example.com',  
+            password='admin_pass'  
+        )  
+        self.normal_user = User.objects.create_user(
+            username='normal_user', password='normal_pass'
+        )
+
+        # Admin logs in
+        self.client.force_authenticate(user=self.admin_user) 
+
+    def test_admin_can_create_public_category(self):
+        """Test that an admin can create a public category"""
+        data = {
+            'name': 'Public Category', 
+            }
+        response = self.client.post(reverse('public-category-list'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        category = Category.objects.get(name='Public Category')
+        self.assertEqual(category.user, None)
+
+    def test_normal_user_creates_exclusive_category(self):
+        """Test that a normal user can create an exclusive category"""
+        self.client.logout()
+        self.client.force_authenticate(self.normal_user)
+
+        data = {'name': 'Exclusive Category', 'user': self.normal_user.id}
+        response = self.client.post(reverse('exclusive-category-list'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        category = Category.objects.get(name='Exclusive Category')
+        self.assertEqual(category.user, self.normal_user)
+
+    def test_normal_user_cannot_create_public_category(self):
+        """Test that a normal user cannot create a public category"""
+        self.client.logout()
+        self.client.force_authenticate(self.normal_user)
+
+        data = {'name': 'Invalid Public Category', 'user': None}
+        response = self.client.post(reverse('public-category-list'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_can_retrieve_public_categories(self):
+        """Test that an admin can retrieve public categories"""
+        Category.objects.create(name='Public Category 1', user=None)
+        Category.objects.create(name='Public Category 2', user=None)
+
+        response = self.client.get(reverse('public-category-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+
+    def test_normal_user_can_retrieve_public_categories(self):
+        """Test that a normal user can retrieve public categories"""
+        self.client.logout()
+        self.client.login(username='normal_user', password='normal_pass')
+
+        Category.objects.create(name='Public Category 1', user=None)
+        Category.objects.create(name='Public Category 2', user=None)
+
+        response = self.client.get(reverse('public-category-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+
+    def test_normal_user_can_retrieve_exclusive_categories(self):
+        """Test that a normal user can retrieve their exclusive categories"""
+        self.client.logout()
+        self.client.force_authenticate(self.normal_user)
+
+        Category.objects.create(name='Exclusive Category 1', user=self.normal_user)
+        Category.objects.create(name='Exclusive Category 2', user=self.normal_user)
+
+        response = self.client.get(reverse('exclusive-category-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+
+    def test_admin_cannot_retrieve_exclusive_categories_of_others(self):
+        """Test that an admin cannot retrieve exclusive categories of normal users"""
+        Category.objects.create(name='Exclusive Category 1', user=self.normal_user)
+        Category.objects.create(name='Exclusive Category 2', user=self.normal_user)
+
+        response = self.client.get(reverse('exclusive-category-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 0)
