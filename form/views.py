@@ -9,6 +9,9 @@ import logging
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.urls import reverse
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from django.core.exceptions import PermissionDenied
+
 
 class IsOwner(permissions.BasePermission):
     """
@@ -48,13 +51,22 @@ class IsOwner(permissions.BasePermission):
             return True      
         return request.user.is_authenticated    
 
+
+class IsAdmin(permissions.BasePermission):
+    message = "Only admins can create public categories."
+    def has_permission(self, request, view):
+        if (request.user.role == 'admin' or request.user.is_staff) and request.user.is_authenticated:
+            return True
+        return False    
+
+
 class OptionViewSet(viewsets.ModelViewSet):
     queryset = Option.objects.all()
     serializer_class = OptionSerializer
     permission_classes = [IsOwner]
 
 class QuestionViewSet(viewsets.ModelViewSet):
-    queryset = Question.objects.all()
+    queryset = Question.objects.all().order_by('order')
     serializer_class = QuestionSerializer
     permission_classes = [IsOwner]
 
@@ -97,9 +109,28 @@ class ProcessViewSet(viewsets.ModelViewSet):
        
         serializer.save(user=self.request.user)
 
-class CategoryViewSet(viewsets.ModelViewSet):
-    queryset = Category.objects.all()
+
+class PublicCategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.filter(user__isnull=True) 
     serializer_class = CategorySerializer
+    permission_classes = [IsAuthenticatedOrReadOnly] 
+
+    def perform_create(self, serializer):        
+        if self.request.user.role == 'admin' or self.request.user.is_staff:
+            serializer.save(user=None)  
+        else:
+            raise PermissionDenied("Only admins can create public categories.")   
+
+
+class ExclusiveCategoryViewSet(viewsets.ModelViewSet):
+    serializer_class = CategorySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Category.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)             
 
 class FormViewSet(viewsets.ModelViewSet):
     queryset = Form.objects.all()
