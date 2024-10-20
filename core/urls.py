@@ -17,17 +17,19 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from form.views import FormViewSet, ProcessViewSet, QuestionViewSet, OptionViewSet, AnswerViewSet, CategoryViewSet
+from form.views import FormViewSet, ProcessViewSet, QuestionViewSet, OptionViewSet, AnswerViewSet
 from user.views import LoginView, SignUpView, UpdateProfileViewSet, ChangePasswordView
+from form.views import PublicCategoryViewSet, ExclusiveCategoryViewSet
 
 router = DefaultRouter()
 router.register(r'forms', FormViewSet, basename='form')
 router.register(r'processes', ProcessViewSet)
-router.register(r'questions', QuestionViewSet)
+router.register(r'questions', QuestionViewSet, basename='questions')
 router.register(r'options', OptionViewSet)
 router.register(r'answers', AnswerViewSet)
-router.register(r'categories', CategoryViewSet)
 router.register(r'profile', UpdateProfileViewSet, basename='profile') 
+router.register(r'public-categories', PublicCategoryViewSet, basename='public-category')
+router.register(r'exclusive-categories', ExclusiveCategoryViewSet, basename='exclusive-category')
 
 
 urlpatterns = [
