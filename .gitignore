@@ -6,8 +6,9 @@
 __pycache__
 db.sqlite3
 media
-LAB.py
-
+user/migrations
+report/migrations
+form/migrations
 
 
 # Backup files # 

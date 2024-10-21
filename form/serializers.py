@@ -1,3 +1,4 @@
+
 from rest_framework import serializers
 from .models import Process, Form, Option, Question, Category, Answer
 from django.db.models import Max
@@ -86,20 +87,15 @@ class QuestionSerializer(serializers.ModelSerializer):
 class AnswerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Answer
-        fields = '__all__'
-
+        fields = ["question", "select", "option","text"]
     def validate(self, data):
-        question = data['question']
-        process = question.process  
-       
-        if process.linear:
-            if question.type == 1 and not data.get('text'):  # Text 
-                raise serializers.ValidationError("This question requires a text answer.")
-            elif question.type == 2 and not data.get('select'):  # Checkbox
-                raise serializers.ValidationError("This question requires at least one option to be selected.")
-            elif question.type == 3 and not data.get('option'):  # Test
-                raise serializers.ValidationError("This question requires an option to be selected.")
+        select = data.get('select', None)
+        option = data.get('option', None)
+        text = data.get('text', '').strip()
 
+        # Check if all three fields are blank or None
+        if not select and not option and not text:
+            raise serializers.ValidationError("At least one of 'select', 'option', or 'text' must be provided.")
         return data        
 
 
@@ -138,5 +134,4 @@ class FormSerializer(serializers.ModelSerializer):
 
         return value    
 
-    
-    
+

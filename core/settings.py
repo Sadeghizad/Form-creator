@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
-
+from datetime import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -26,6 +26,26 @@ SECRET_KEY = 'django-insecure-$t72iij&%a^6g%c6+2i0tw*y_gkcg2^ew5w1f%5dliscwaev&^
 DEBUG = True
 
 ALLOWED_HOSTS = []
+AUTH_USER_MODEL = 'user.User'
+REST_AUTH_REGISTER_SERIALIZERS = {
+    'REGISTER_SERIALIZER': 'user.serializers.CustomRegisterSerializer',
+}
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+}
+REST_USE_JWT = True
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
 
 
 # Application definition
@@ -38,9 +58,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'rest_framework.authtoken',
     'django.contrib.sites',
     'dj_rest_auth',
+    'rest_framework.authtoken',
     'allauth',
     'allauth.account',
     'channels',
@@ -50,7 +70,7 @@ INSTALLED_APPS = [
     'form',
     'report',
 ]
-
+SITE_ID = 1
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -111,7 +131,7 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
+PASSWORD_RESET_TIMEOUT = 60*60*6
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
@@ -123,7 +143,15 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
-
+ASGI_APPLICATION = 'core.asgi.application'
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
@@ -135,34 +163,25 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-REST_FRAMEWORK = {
-    # Use Django's standard `django.contrib.auth` permissions,
-    # or allow read-only access for unauthenticated users.
-    'DEFAULT_AUTHENTICATION_CLASSES': (  
-        # 'rest_framework.authentication.TokenAuthentication',  # Ensure correct import  
-        # 'rest_framework.authentication.SessionAuthentication',  # Optional  
-        'rest_framework_simplejwt.authentication.JWTAuthentication', 
-    ),
-    'DEFAULT_PERMISSION_CLASSES': [
-        # 'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',
-        'rest_framework.permissions.IsAuthenticated',
-    ]
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'sadeghizad.mf@gmail.com'
+EMAIL_HOST_PASSWORD = 'your-password'
+DEFAULT_FROM_EMAIL = 'formcreator@gmail.com'
+# settings.py
+CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Example broker, adjust accordingly
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+
+
+CELERY_BEAT_SCHEDULE = {
+    'update-form-stats-daily': {
+        'task': 'report.tasks.update_form_stats',
+        'schedule': timedelta(days=1),  # Adjust to your preferred timing
+    },
+    'generate-weekly-admin-report': {
+        'task': 'your_app.tasks.generate_admin_report',
+        'schedule': timedelta(weeks=1),  # Runs every week
+    },
 }
-
-# LOGGING = {
-#     'version': 1,
-#     'disable_existing_loggers': False,
-#     'handlers': {
-#         'console': {
-#             'class': 'logging.StreamHandler',
-#         },
-#     },
-#     'loggers': {
-#         'django': {
-#             'handlers': ['console'],
-#             'level': 'DEBUG',
-#         },
-#     },
-# }
-
-AUTH_USER_MODEL = 'user.User'

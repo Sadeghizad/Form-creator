@@ -13,10 +13,10 @@ class Form(models.Model):
 
 class Process(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    form = models.ForeignKey(Form, on_delete=models.CASCADE)
+    form = models.ManyToManyField(Form)
     category = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True)
     linear = models.BooleanField(default=False)
-    password = models.CharField(max_length=100, null=True, blank=True)
+    password = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     order = models.IntegerField() 
@@ -48,13 +48,13 @@ class Option(models.Model):
 class Answer(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    select = models.ManyToManyField(Option, max_length=255, null=True, blank=True, related_name='select')  # For checkbox 
+    select = models.ManyToManyField(Option, max_length=255, blank=True, related_name='select')  # For checkbox 
     option = models.ForeignKey(Option, null=True, blank=True, on_delete=models.SET_NULL, related_name='option')  # For test
-    text = models.TextField(null=True, blank=True)
+    text = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
 
 class Category(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     name = models.CharField(max_length=100)
-    description = models.TextField(null=True, blank=True)
+    description = models.TextField(blank=True)

@@ -16,6 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+
 from rest_framework.routers import DefaultRouter
 from form.views import FormViewSet, ProcessViewSet, QuestionViewSet, OptionViewSet, AnswerViewSet
 from user.views import LoginView, SignUpView, UpdateProfileViewSet, ChangePasswordView
@@ -38,4 +39,7 @@ urlpatterns = [
     path('signup/', SignUpView.as_view(), name='signup'),
     path('', include(router.urls)), 
     path('change_password', ChangePasswordView.as_view(), name='auth_change_password'),
+    path('', include('user.urls')),
+    path('', include('form.urls')),
+    path('', include('report.urls')),
 ]
