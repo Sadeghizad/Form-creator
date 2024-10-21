@@ -12,7 +12,7 @@ class User(AbstractUser):
         max_length=20, choices=[("admin", "Admin"), ("user", "User")]
     )
     updated_at = models.DateTimeField(auto_now=True)
-phone_number = models.CharField(max_length=13, validators=[validate_phone_number], unique=True, null=True, blank=True)
+    phone_number = models.CharField(max_length=13, validators=[validate_phone_number], unique=True, null=True, blank=True)
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)

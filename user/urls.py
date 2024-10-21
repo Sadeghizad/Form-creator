@@ -1,8 +1,7 @@
 from django.urls import path, include
 from django.contrib.auth import views
 from rest_framework.routers import DefaultRouter
-from .viewsets import CustomRegisterViewSet
-from .views import CustomLoginView,password_reset_confirm_view
+from .views import CustomLoginView,password_reset_confirm_view,CustomRegisterViewSet
 
 router = DefaultRouter()
 router.register(r'registration', CustomRegisterViewSet, basename='registration')

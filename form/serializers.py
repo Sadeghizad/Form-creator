@@ -22,7 +22,8 @@ class ProcessSerializer(serializers.ModelSerializer):
         return representation    
 
     def create(self, validated_data):
-        form = validated_data.get('form')
+        id = validated_data.get('form')
+        form = Form.objects.get(id=id)
         if form.user != self.context['request'].user:
             raise serializers.ValidationError("You do not have permission to add processes to this form.")
 

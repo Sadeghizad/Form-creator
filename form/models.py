@@ -13,7 +13,7 @@ class Form(models.Model):
 
 class Process(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    form = models.ManyToManyField(Form)
+    form = models.ManyToManyField(Form, null=True)
     category = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True)
     linear = models.BooleanField(default=False)
     password = models.CharField(max_length=100, blank=True)
@@ -21,9 +21,6 @@ class Process(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     order = models.IntegerField() 
     is_private = models.BooleanField(default=False)
-
-    # class Meta:
-    #     unique_together = ['form', 'order']
 
 class Question(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -36,8 +33,6 @@ class Question(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     order = models.IntegerField() 
 
-    # class Meta:
-    #     unique_together = ['process', 'order', 'form']
 
 class Option(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
