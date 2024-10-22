@@ -30,16 +30,25 @@ class IsOwner(permissions.BasePermission):
             return True
 
         if hasattr(obj, "form"):  # For processes
-            form = obj.form
+            forms = obj.form.all()
+            print(1)
         elif hasattr(obj, "process"):  # For questions
-            form = obj.process.form
+            forms = obj.process.form.all()
+            print(2)
         else:
-            form = obj
+            forms = obj.all()
+            print(3)
 
         if request.method in permissions.SAFE_METHODS:
             return True
 
-        return form.user == request.user
+        print("form is", forms)
+        print(type(forms))    
+
+        for form in forms:
+            if form.user != request.user:
+                return False
+        return True            
 
     def has_permission(self, request, view):
 
