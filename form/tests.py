@@ -4,6 +4,10 @@ from rest_framework.test import APITestCase
 from django.contrib.auth import get_user_model
 from user.models import User
 from form.models import Form, Process, Question, Category, Option, Answer
+import pytest
+from django.contrib.auth import get_user_model
+from graphene_django.utils.testing import graphql_query
+from .models import Form, Process, Question, Option
 
 User = get_user_model()
 
@@ -394,3 +398,94 @@ class AnswerTest(APITestCase):
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]['text'], 'Sample answer text')
 
+
+User = get_user_model()
+
+@pytest.mark.django_db
+def test_start_form(client):
+    # Set up test data
+    user = User.objects.create_user(username='testuser', password='password')
+    form = Form.objects.create(user=user, name='Test Form')
+    process = Process.objects.create(user=user, linear=False, order=1)
+    process.form.add(form)
+    question1 = Question.objects.create(
+        user=user,
+        process=process,
+        text="What's your name?",
+        type=1,  # Text question type
+        order=1,
+        required=True
+    )
+    question2 = Question.objects.create(
+        user=user,
+        process=process,
+        text="How old are you?",
+        type=1,  # Text question type
+        order=2,
+        required=True
+    )
+
+    # Perform the GraphQL query
+    response = graphql_query(
+        '''
+        mutation {
+            startForm(formId: "1") {
+                processes {
+                    id
+                    name
+                    type
+                    questions {
+                        id
+                        text
+                    }
+                }
+                question {
+                    id
+                    text
+                }
+            }
+        }
+        ''',
+        client=client,
+        user=user,
+    )
+
+    # Assert the response
+    content = response.json()
+    assert 'data' in content
+    assert 'startForm' in content['data']
+    assert 'processes' in content['data']['startForm']
+
+@pytest.mark.django_db
+def test_record_answer(client):
+    # Set up test data
+    user = User.objects.create_user(username='testuser', password='password')
+    form = Form.objects.create(user=user, name='Test Form')
+    process = Process.objects.create(user=user, linear=True, order=1)
+    process.form.add(form)
+    question = Question.objects.create(
+        user=user,
+        process=process,
+        text="What's your name?",
+        type=1,  # Text question type
+        order=1,
+        required=True
+    )
+
+    # Perform the GraphQL mutation
+    response = graphql_query(
+        '''
+        mutation {
+            recordAnswer(questionId: "1", answerText: "John Doe") {
+                success
+            }
+        }
+        ''',
+        client=client,
+        user=user,
+    )
+
+    # Assert the response
+    content = response.json()
+    assert 'data' in content
+    assert content['data']['recordAnswer']['success'] is True

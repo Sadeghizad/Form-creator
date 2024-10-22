@@ -13,6 +13,7 @@ class Form(models.Model):
 
 class Process(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    form = models.ManyToManyField(Form, related_name="processes")
     category = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True)
     linear = models.BooleanField(default=False)
     password = models.CharField(max_length=100, blank=True)
@@ -23,8 +24,7 @@ class Process(models.Model):
 
 class Question(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    form = models.ForeignKey(Form, on_delete=models.CASCADE)
-    process = models.ForeignKey(Process, on_delete=models.CASCADE)
+    process = models.ForeignKey(Process, related_name="questions", on_delete=models.CASCADE)
     text = models.TextField()
     type = models.IntegerField(choices=[(1, 'Text'), (2, 'Checkbox'), (3, 'Test')])  # e.g., 'text', 'multiple choice', etc.
     required = models.BooleanField(default=False)

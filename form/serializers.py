@@ -22,7 +22,9 @@ class ProcessSerializer(serializers.ModelSerializer):
         return representation    
 
     def create(self, validated_data):
-        forms = validated_data.get('form')
+        ids = self.context['request'].data.get("form", [])
+        print(ids)
+        forms = Form.objects.filter(id__in=ids)
         for form in forms:
             if form.user != self.context['request'].user:
                 raise serializers.ValidationError("You do not have permission to add processes to this form.")
@@ -71,7 +73,7 @@ class QuestionSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         process = validated_data['process']
-        if process.form.user != self.context['request'].user:
+        if process.user != self.context['request'].user:
             raise serializers.ValidationError("You do not have permission to add questions to this process.")
 
         if 'order' not in validated_data:

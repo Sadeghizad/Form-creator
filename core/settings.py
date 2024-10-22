@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     'channels',
     'allauth.socialaccount',
     'dj_rest_auth.registration',
+    'graphene_django',
     'user',
     'form',
     'report',
@@ -113,7 +114,9 @@ DATABASES = {
     }
 }
 
-
+GRAPHENE = {
+    "SCHEMA": "form.schema.schema",
+}
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
