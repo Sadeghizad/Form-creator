@@ -12,6 +12,7 @@ class Form(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 class Process(models.Model):
+    form = models.ForeignKey(Form, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     category = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True)
     linear = models.BooleanField(default=False)
@@ -23,7 +24,6 @@ class Process(models.Model):
 
 class Question(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    form = models.ForeignKey(Form, on_delete=models.CASCADE)
     process = models.ForeignKey(Process, on_delete=models.CASCADE)
     text = models.TextField()
     type = models.IntegerField(choices=[(1, 'Text'), (2, 'Checkbox'), (3, 'Test')])  # e.g., 'text', 'multiple choice', etc.
