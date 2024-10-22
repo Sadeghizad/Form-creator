@@ -13,7 +13,6 @@ class Form(models.Model):
 
 class Process(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    form = models.ManyToManyField(Form, null=True)
     category = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True)
     linear = models.BooleanField(default=False)
     password = models.CharField(max_length=100, blank=True)
