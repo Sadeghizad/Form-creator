@@ -13,7 +13,7 @@ class ProcessSerializer(serializers.ModelSerializer):
         }
 
     def get_forms(self, obj):  
-        return "id: {}, name: {}".format(obj.form.id, obj.form.name) 
+        return [{"id": form.id, "name": form.name} for form in obj.form.all()]
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -22,17 +22,17 @@ class ProcessSerializer(serializers.ModelSerializer):
         return representation    
 
     def create(self, validated_data):
-        id = validated_data.get('form')
-        form = Form.objects.get(id=id)
-        if form.user != self.context['request'].user:
-            raise serializers.ValidationError("You do not have permission to add processes to this form.")
+        forms = validated_data.get('form')
+        for form in forms:
+            if form.user != self.context['request'].user:
+                raise serializers.ValidationError("You do not have permission to add processes to this form.")
 
-        if 'order' not in validated_data:
-            last_order = Process.objects.filter(form=form).aggregate(Max('order'))['order__max'] or 0
-            validated_data['order'] = last_order + 1
+            if 'order' not in validated_data:
+                last_order = Process.objects.filter(form=form).aggregate(Max('order'))['order__max'] or 0
+                validated_data['order'] = last_order + 1
 
-        if Process.objects.filter(form=form, order=validated_data['order']).exists():
-            raise serializers.ValidationError("The combination of form and order must be unique.")        
+            if Process.objects.filter(form=form, order=validated_data['order']).exists():
+                raise serializers.ValidationError("The combination of form {} and order must be unique.".format(form.id))        
 
         return super().create(validated_data)  
 
@@ -71,7 +71,6 @@ class QuestionSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         process = validated_data['process']
-        form = validated_data['form']
         if process.form.user != self.context['request'].user:
             raise serializers.ValidationError("You do not have permission to add questions to this process.")
 
@@ -79,8 +78,8 @@ class QuestionSerializer(serializers.ModelSerializer):
             last_order = Question.objects.filter(process=process).aggregate(Max('order'))['order__max'] or 0
             validated_data['order'] = last_order + 1
 
-        if Question.objects.filter(form=form, process=process, order=validated_data['order']).exists():
-            raise serializers.ValidationError("The combination of form, process and order must be unique.")   
+        if Question.objects.filter(process=process, order=validated_data['order']).exists():
+            raise serializers.ValidationError("The combination of process and order must be unique.")   
 
         return super().create(validated_data)    
 
