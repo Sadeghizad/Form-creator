@@ -12,6 +12,7 @@ class Form(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 class Process(models.Model):
+    form = models.ForeignKey(Form, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     form = models.ManyToManyField(Form, related_name="processes")
     category = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True)
