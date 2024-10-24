@@ -12,5 +12,8 @@ RUN pip install -r requirements.txt
 ADD ./core /app/core
 ADD ./docker /app/docker
 
+ADD ./docker/backend/worker-entrypoint.sh /app/docker/backend/worker-entrypoint.sh  
+ADD ./docker/backend/server-entrypoint.sh /app/docker/backend/server-entrypoint.sh  
+
 RUN chmod +x /app/docker/backend/server-entrypoint.sh
 RUN chmod +x /app/docker/backend/worker-entrypoint.sh
