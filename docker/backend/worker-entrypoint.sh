@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 until cd /app/backend
 do

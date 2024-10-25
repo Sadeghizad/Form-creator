@@ -15,48 +15,20 @@ from django.core.exceptions import PermissionDenied
 
 class IsOwner(permissions.BasePermission):
     """
-    Custom permission to allow only the creator of a form to create, update, or delete its processes/questions,
-    and ensure that only authenticated users can answer questions.
+    Custom permission to only allow owners of an object to edit or delete it.
+    Authenticated users can create (POST).
     """
 
-    message = "You do not have permission to perform this action."
+    def has_permission(self, request, view):
+        if request.method == 'POST':
+            return request.user and request.user.is_authenticated
+        
+        return True  
 
     def has_object_permission(self, request, view, obj):
 
-        if not request.user or not request.user.is_authenticated:
-            return False
+        return obj.user == request.user
 
-        if request.method == "POST":
-            return True
-
-        if hasattr(obj, "form"):  # For processes
-            forms = obj.form.all()
-            print(1)
-        elif hasattr(obj, "process"):  # For questions
-            forms = obj.process.form.all()
-            print(2)
-        else:
-            forms = obj.all()
-            print(3)
-
-        if request.method in permissions.SAFE_METHODS:
-            return True
-
-        print("form is", forms)
-        print(type(forms))    
-
-        for form in forms:
-            if form.user != request.user:
-                return False
-        return True            
-
-    def has_permission(self, request, view):
-
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        if request.method == "POST":
-            return True
-        return request.user.is_authenticated
 
 
 class IsAdmin(permissions.BasePermission):

@@ -4,7 +4,6 @@ from .models import Process, Form, Option, Question, Category, Answer
 from django.db.models import Max
 
 class ProcessSerializer(serializers.ModelSerializer):
-    forms = serializers.SerializerMethodField()
     class Meta:
         model = Process
         exclude = ['user']
@@ -12,36 +11,25 @@ class ProcessSerializer(serializers.ModelSerializer):
             'order': {'required': False}  
         }
 
-    def get_forms(self, obj):  
-        return [{"id": form.id, "name": form.name} for form in obj.form.all()]
-
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation.pop('password', None)
         
         return representation    
 
-    def create(self, validated_data):
-        ids = self.context['request'].data.get("form", [])
-        print(ids)
-        forms = Form.objects.filter(id__in=ids)
-        for form in forms:
-            if form.user != self.context['request'].user:
-                raise serializers.ValidationError("You do not have permission to add processes to this form.")
-
-            if 'order' not in validated_data:
-                last_order = Process.objects.filter(form=form).aggregate(Max('order'))['order__max'] or 0
-                validated_data['order'] = last_order + 1
-
-            if Process.objects.filter(form=form, order=validated_data['order']).exists():
-                raise serializers.ValidationError("The combination of form {} and order must be unique.".format(form.id))        
-
-        return super().create(validated_data)  
-
     def validate(self, data):
        
         if data.get('is_private') and not data.get('password'):
             raise serializers.ValidationError("A password is required for private processes.")
+
+        if not data.get('order'):
+            raise serializers.ValidationError("Process must have at least one question.")
+        
+        user = self.context['request'].user
+        for question_id in data['order']:
+            question = Question.objects.get(id=question_id)
+            if question.user != user:
+                raise serializers.ValidationError("You can only add questions you created.")    
         
         return data  
 
@@ -63,27 +51,22 @@ class OptionSerializer(serializers.ModelSerializer):
         return super().create(validated_data)    
 
 class QuestionSerializer(serializers.ModelSerializer):
-    options = OptionSerializer(many=True, read_only=True)
     class Meta:
         model = Question
         exclude = ['user'] 
-        extra_kwargs = {
-            'order': {'required': False}  # Make order optional
-        }
 
-    def create(self, validated_data):
-        process = validated_data['process']
-        if process.user != self.context['request'].user:
-            raise serializers.ValidationError("You do not have permission to add questions to this process.")
+    def validate(self, data):    
+        if data['type'] == 2 or data['type'] == 3:
+                if not data.get('order'):
+                    raise serializers.ValidationError("You must add options for test or checkbox questions.")
+                user = self.context['request'].user
+                for option_id in data['order']:
+                    option = Option.objects.get(id=option_id)
+                    if option.user != user:
+                        raise serializers.ValidationError("You can only add options you created.")
 
-        if 'order' not in validated_data:
-            last_order = Question.objects.filter(process=process).aggregate(Max('order'))['order__max'] or 0
-            validated_data['order'] = last_order + 1
 
-        if Question.objects.filter(process=process, order=validated_data['order']).exists():
-            raise serializers.ValidationError("The combination of process and order must be unique.")   
-
-        return super().create(validated_data)    
+        return data                
 
 
 class AnswerSerializer(serializers.ModelSerializer):
@@ -127,6 +110,15 @@ class FormSerializer(serializers.ModelSerializer):
     def validate(self, data):
         if data.get('is_private') and not data.get('password'):
             raise serializers.ValidationError("A password is required for private forms.")
+
+        if not data.get('order'):
+            raise serializers.ValidationError("Form must have at least one process.")
+
+        user = self.context['request'].user
+        for process_id in data['order']:
+            process = Process.objects.get(id=process_id)
+            if process.user != user and process.is_private:
+                raise serializers.ValidationError("You can only add processes you own or that are public.")    
         return data    
 
     def validate_category(self, value):
