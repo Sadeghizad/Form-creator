@@ -47,8 +47,8 @@ class Question(models.Model):
 
 
 class Option(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     text = models.CharField(max_length=255)
-    order = models.IntegerField(null=True, blank=True)
 
 
 class Answer(models.Model):

@@ -34,21 +34,9 @@ class ProcessSerializer(serializers.ModelSerializer):
         return data  
 
 class OptionSerializer(serializers.ModelSerializer):
-    question = serializers.SerializerMethodField()
     class Meta:
         model = Option
-        fields = '__all__'
-
-    def get_question(self, obj):  
-        return "id: {}, text: {}".format(obj.question.id, obj.question.text)     
-
-    def create(self, validated_data):
-        question = validated_data['question']
-        if question.process.form.user != self.context['request'].user:
-            raise serializers.ValidationError("You do not have permission to add options to this question.")
-        if question.type == 1:
-            raise serializers.ValidationError("Options cannot be defined for text questions.")
-        return super().create(validated_data)    
+        exclude = ['user']    
 
 class QuestionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -64,6 +52,9 @@ class QuestionSerializer(serializers.ModelSerializer):
                     option = Option.objects.get(id=option_id)
                     if option.user != user:
                         raise serializers.ValidationError("You can only add options you created.")
+
+        if data['type'] == 1 and data.get('order'):
+            raise serializers.ValidationError("Text questions don't have options.")              
 
 
         return data                
