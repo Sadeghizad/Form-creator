@@ -7,6 +7,12 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny
 
+import qrcode
+from io import BytesIO
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+from django.http import HttpResponse
+
 class CustomLoginView(LoginView):
     permission_classes = [AllowAny]
     serializer_class = CustomLoginSerializer
@@ -58,4 +64,34 @@ class CustomRegisterViewSet(viewsets.ViewSet):
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class GenerateQRView(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
 
+    def list(self, request):
+        user = request.user
+        user.generate_totp_secret()  # Ensure a TOTP secret exists
+        uri = user.get_totp_uri()
+
+        # Generate QR Code
+        qr = qrcode.make(uri)
+        stream = BytesIO()
+        qr.save(stream, "PNG")
+        return HttpResponse(stream.getvalue(), content_type="image/png")
+
+class Update2FASettingsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        enable_2fa = request.data.get("enable_2fa", False)
+        use_email_for_2fa = request.data.get("use_email_for_2fa", False)
+
+        user.enable_2fa = enable_2fa
+        user.use_email_for_2fa = use_email_for_2fa
+
+        if enable_2fa and not use_email_for_2fa:
+            user.generate_totp_secret()  # Ensure a TOTP secret is generated for Google Authenticator
+
+        user.save()
+        return Response({"message": "2FA settings updated successfully."})

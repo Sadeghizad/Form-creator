@@ -29,6 +29,7 @@ mysql-connector-python==8.0.31
 neo4j==5.25.0
 neo4j-driver==5.25.0
 pillow==10.4.0
+pyotp==2.9.0
 PyJWT==2.9.0
 python-dateutil==2.9.0.post0
 pytz==2024.2
@@ -40,3 +41,4 @@ dj-database-url==0.5.0
 celery[redis]
 markdown
 django-filter
+qrcode==8.0
