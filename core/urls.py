@@ -31,8 +31,7 @@ urlpatterns = [
     path('', include('user.urls')),
     path('', include('form.urls')),
     path('', include('report.urls')),
-    # path('graphql_token/', csrf_exempt(CustomGraphQLView.as_view(schema=schema)), name='graphql_token'),
     path('graphql/', csrf_exempt(GraphQLView.as_view(graphiql=True))),
-    # path('graphiql/', include('django_graphiql.urls')),
+   
 
 ]
