@@ -26,10 +26,18 @@ class User(AbstractUser):
     totp_secret = models.CharField(max_length=16, blank=True, null=True)
     email_pin = models.CharField(max_length=6, blank=True, null=True)
 
+    def generate_totp_secret(self):
+        if not self.totp_secret:
+            self.totp_secret = pyotp.random_base32()  
+            self.save()
+        return self.totp_secret
+
     def get_totp_uri(self):
-        return f"otpauth://totp/FormCreator:{self.username}?secret={self.totp_secret}&issuer=FormCreator"
+        return f"otpauth://totp/Form-Creator:{self.username}?secret={self.totp_secret}&issuer=form-creator"
 
     def verify_totp(self, token):
+        if not self.totp_secret:
+            return False
         totp = pyotp.TOTP(self.totp_secret)
         return totp.verify(token)
 
@@ -37,6 +45,7 @@ class User(AbstractUser):
         pin = f"{random.randint(100000, 999999)}"
         self.email_pin = pin
         self.save()
+
         send_custom_email(
             subject="Your 2FA PIN Code",
             message=f"Your 2FA PIN code is {pin}",

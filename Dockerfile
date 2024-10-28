@@ -10,7 +10,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the project files
-COPY . .
+COPY . /app/
 
-# Expose port 8000 to allow external access
-EXPOSE 8000
+# Run migrations  
+CMD python manage.py makemigrations user && \
+    python manage.py migrate && \
+    python manage.py runserver 0.0.0.0:8000  
