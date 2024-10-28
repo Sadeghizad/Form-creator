@@ -42,3 +42,4 @@ celery[redis]
 markdown
 django-filter
 qrcode==8.0
+django-graphql-jwt==0.4.0

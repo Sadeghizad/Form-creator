@@ -17,11 +17,22 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from graphene_django.views import GraphQLView
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
+
+
+
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('user.urls')),
     path('', include('form.urls')),
     path('', include('report.urls')),
-    path("graphql/", GraphQLView.as_view(graphiql=True)),
+    # path('graphql_token/', csrf_exempt(CustomGraphQLView.as_view(schema=schema)), name='graphql_token'),
+    path('graphql/', csrf_exempt(GraphQLView.as_view(graphiql=True))),
+    # path('graphiql/', include('django_graphiql.urls')),
+
 ]

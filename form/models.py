@@ -16,12 +16,12 @@ class Form(models.Model):
         blank=True,
         default=list
     )
+    linear = models.BooleanField(default=False)
 
 
 class Process(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     category = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True)
-    linear = models.BooleanField(default=False)
     password = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -52,12 +52,15 @@ class Option(models.Model):
 
 
 class Answer(models.Model):
-    question = models.ForeignKey(Question, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    select = models.ManyToManyField(Option, max_length=255, blank=True, related_name='select')  # For checkbox 
-    option = models.ForeignKey(Option, null=True, blank=True, on_delete=models.SET_NULL, related_name='option')  # For test
-    text = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    form = models.ForeignKey(Form, on_delete=models.CASCADE)
+    option = models.ForeignKey(Option, null=True, blank=True, on_delete=models.SET_NULL)
+    select = models.ManyToManyField(Option, blank=True, related_name='multi_answers')
+    text = models.TextField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('user', 'question', 'form')
 
 
 class Category(models.Model):

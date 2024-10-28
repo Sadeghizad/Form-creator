@@ -226,3 +226,15 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': timedelta(weeks=1),  # Runs every week
     },
 }
+
+GRAPHENE = {
+    'SCHEMA': 'core.schema.schema',
+    "MIDDLEWARE": [
+        "graphql_jwt.middleware.JSONWebTokenMiddleware",  
+    ],
+}
+
+AUTHENTICATION_BACKENDS = [
+    'graphql_jwt.backends.JSONWebTokenBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
