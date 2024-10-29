@@ -1,8 +1,14 @@
 from django.test import TestCase
 from rest_framework.test import APITestCase
-from .models import Option, Question, Process, Form, User
+from .models import Option, Question, Process, Form, User, Category, Answer
 from django.urls import reverse
 from rest_framework import status
+from django.contrib.auth import get_user_model
+import graphene
+from .schema import Query
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError
+
 
 class UserTestCase(APITestCase):
     def setUp(self):
@@ -134,3 +140,133 @@ class FormAPITests(UserTestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('non_field_errors', response.data)  
         self.assertEqual(response.data['non_field_errors'][0], 'A password is required for private forms.')
+
+
+class CategoryTests(APITestCase):
+    def setUp(self):
+
+
+        # Create an admin user and a regular user
+        self.admin_user = User.objects.create_superuser(  
+            username='admin_user',  
+            email='admin@example.com',  
+            password='admin_pass'  
+        )  
+        self.normal_user = User.objects.create_user(
+            username='normal_user', password='normal_pass'
+        )
+
+        # Admin logs in
+        self.client.force_authenticate(user=self.admin_user) 
+
+    def test_admin_can_create_public_category(self):
+        """Test that an admin can create a public category"""
+        data = {
+            'name': 'Public Category', 
+            }
+        response = self.client.post(reverse('public-category-list'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        category = Category.objects.get(name='Public Category')
+        self.assertEqual(category.user, None)
+
+    def test_normal_user_creates_exclusive_category(self):
+        """Test that a normal user can create an exclusive category"""
+        self.client.logout()
+        self.client.force_authenticate(self.normal_user)
+
+        data = {'name': 'Exclusive Category', 'user': self.normal_user.id}
+        response = self.client.post(reverse('exclusive-category-list'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        category = Category.objects.get(name='Exclusive Category')
+        self.assertEqual(category.user, self.normal_user)
+
+    def test_normal_user_cannot_create_public_category(self):
+        """Test that a normal user cannot create a public category"""
+        self.client.logout()
+        self.client.force_authenticate(self.normal_user)
+
+        data = {'name': 'Invalid Public Category', 'user': None}
+        response = self.client.post(reverse('public-category-list'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_can_retrieve_public_categories(self):
+        """Test that an admin can retrieve public categories"""
+        Category.objects.create(name='Public Category 1', user=None)
+        Category.objects.create(name='Public Category 2', user=None)
+
+        response = self.client.get(reverse('public-category-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+
+    def test_normal_user_can_retrieve_public_categories(self):
+        """Test that a normal user can retrieve public categories"""
+        self.client.logout()
+        self.client.login(username='normal_user', password='normal_pass')
+
+        Category.objects.create(name='Public Category 1', user=None)
+        Category.objects.create(name='Public Category 2', user=None)
+
+        response = self.client.get(reverse('public-category-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+
+    def test_normal_user_can_retrieve_exclusive_categories(self):
+        """Test that a normal user can retrieve their exclusive categories"""
+        self.client.logout()
+        self.client.force_authenticate(self.normal_user)
+
+        Category.objects.create(name='Exclusive Category 1', user=self.normal_user)
+        Category.objects.create(name='Exclusive Category 2', user=self.normal_user)
+
+        response = self.client.get(reverse('exclusive-category-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+
+    def test_admin_cannot_retrieve_exclusive_categories_of_others(self):
+        """Test that an admin cannot retrieve exclusive categories of normal users"""
+        Category.objects.create(name='Exclusive Category 1', user=self.normal_user)
+        Category.objects.create(name='Exclusive Category 2', user=self.normal_user)
+
+        response = self.client.get(reverse('exclusive-category-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 0)
+
+User = get_user_model()
+
+class FormProcessQuestionTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create(username='testuser', password='testpassword')
+        
+        # Create categories and forms
+        self.category = Category.objects.create(user=self.user, name="General", description="General category")
+        self.form_linear = Form.objects.create(user=self.user, name="Linear Form", category=self.category, linear=True)
+        
+        # Create processes and questions for the form
+        self.process1 = Process.objects.create(user=self.user, category=self.category)
+        self.process2 = Process.objects.create(user=self.user, category=self.category)
+        self.form_linear.order = [self.process1.id, self.process2.id]
+        self.form_linear.save()
+
+        self.question1 = Question.objects.create(user=self.user, text="First question?", type=1, required=True)
+        self.question2 = Question.objects.create(user=self.user, text="Second question?", type=1, required=True)
+        self.process1.order = [self.question1.id, self.question2.id]
+        self.process1.save()
+
+    def test_unique_answer_per_form_per_user(self):
+        """
+        Test that a user cannot submit multiple answers to the same question within the same form.
+        """
+        Answer.objects.create(user=self.user, question=self.question1, form=self.form_linear, text="First answer to question 1")
+        
+        # Attempt to create a duplicate answer
+        with self.assertRaises(IntegrityError):
+            Answer.objects.create(user=self.user, question=self.question1, form=self.form_linear, text="Duplicate answer")
+
+    def test_free_form_answer_submission(self):
+        """
+        In a free form, any question should be answerable regardless of order.
+        """
+        Answer.objects.create(user=self.user, question=self.question1, form=self.form_linear, text="Answer to question in free form")
+        Answer.objects.create(user=self.user, question=self.question2, form=self.form_linear, text="Answer to another question in free form")

@@ -228,7 +228,7 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 GRAPHENE = {
-    'SCHEMA': 'core.schema.schema',
+    'SCHEMA': 'form.schema.schema',
     "MIDDLEWARE": [
         "graphql_jwt.middleware.JSONWebTokenMiddleware",  
     ],
