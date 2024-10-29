@@ -92,13 +92,5 @@ class CustomLoginSerializer(LoginSerializer):
                 
         if user and not user.is_active:
             raise serializers.ValidationError("This account is inactive.")
-
-        
-        # if email and not user.emailaddress_set.filter(verified=True).exists():
-        #     raise serializers.ValidationError("E-mail is not verified.")
-
-        if user and not user.is_active:
-            raise serializers.ValidationError("This account is inactive.")
-
-        
+    
         return {'user': user}
