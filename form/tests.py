@@ -146,7 +146,7 @@ class CategoryTests(APITestCase):
     def setUp(self):
 
 
-        # Create an admin user and a regular user
+        
         self.admin_user = User.objects.create_superuser(  
             username='admin_user',  
             email='admin@example.com',  
@@ -270,3 +270,89 @@ class FormProcessQuestionTests(TestCase):
         """
         Answer.objects.create(user=self.user, question=self.question1, form=self.form_linear, text="Answer to question in free form")
         Answer.objects.create(user=self.user, question=self.question2, form=self.form_linear, text="Answer to another question in free form")
+
+
+    def test_answer_submission_non_linear_form(self):
+        """
+        Test that answers in a non-linear form can be submitted in any order.
+        """
+        self.form_linear.linear = False
+        self.form_linear.save()
+        
+       
+        answer2 = Answer.objects.create(user=self.user, question=self.question2, form=self.form_linear, text="Answer to question 2")
+        self.assertIsNotNone(answer2)
+        
+        
+        answer1 = Answer.objects.create(user=self.user, question=self.question1, form=self.form_linear, text="Answer to question 1")
+        self.assertIsNotNone(answer1)
+
+    def test_text_only_answer_for_text_question(self):
+        """
+        Test that only the text field is accepted for text-type questions.
+        """
+        with self.assertRaises(ValidationError):
+            Answer.objects.create(user=self.user, question=self.question1, form=self.form_linear, option=self.option)
+        
+    
+
+
+from graphene_django.utils.testing import GraphQLTestCase
+from graphql_jwt.testcases import JSONWebTokenTestCase
+
+class FormProcessQuestionTests(JSONWebTokenTestCase):
+    def setUp(self):
+        super().setUp()
+        self.user = User.objects.create(username='testuser', password='testpassword')
+        self.client.authenticate(self.user)
+        
+        
+        self.category = Category.objects.create(user=self.user, name="General", description="General category")
+        self.form_linear = Form.objects.create(user=self.user, name="Linear Form", category=self.category, linear=True)
+        self.process1 = Process.objects.create(user=self.user, category=self.category)
+        self.process2 = Process.objects.create(user=self.user, category=self.category)
+        self.form_linear.order = [self.process1.id, self.process2.id]
+        self.form_linear.save()
+
+        self.question1 = Question.objects.create(user=self.user, text="First question?", type=1, required=True)
+        self.question2 = Question.objects.create(user=self.user, text="Second question?", type=1, required=True)
+        self.process1.order = [self.question1.id, self.question2.id]
+        self.process1.save()
+
+    def test_answer_submission_order_linear_form(self):
+        """
+        Test that answers in a linear form must be submitted in order.
+        """
+        
+        response = self.client.execute(
+            '''
+            mutation($input: AnswerInput!) {
+                submitAnswer(input: $input) {
+                    answer {
+                        text
+                    }
+                }
+            }
+            ''',
+            variables={'input': {'questionId': str(self.question2.id), 'text': "Attempt to answer out of order", 'formId': str(self.form_linear.id)}}
+        )
+
+        
+        self.assertIsNotNone(response.errors)
+        self.assertIn("Answer previous questions in order first.", response.errors[0].message)
+        
+        
+        response = self.client.execute(
+            '''
+            mutation($input: AnswerInput!) {
+                submitAnswer(input: $input) {
+                    answer {
+                        text
+                    }
+                }
+            }
+            ''',
+            variables={'input': {'questionId': str(self.question1.id), 'text': "Answer to question 1", 'formId': str(self.form_linear.id)}}
+        )
+
+        self.assertIsNone(response.errors)  
