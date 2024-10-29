@@ -211,9 +211,10 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'sadeghizad.mf@gmail.com'
 EMAIL_HOST_PASSWORD = 'your-password'
 DEFAULT_FROM_EMAIL = 'formcreator@gmail.com'
-# settings.py
-CELERY_BROKER_URL = os.environ.get("BROKER_URL", "redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = os.environ.get("RESULT_BACKEND", "redis://localhost:6379/0")
+
+from celery import Celery
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
 
 
 CELERY_BEAT_SCHEDULE = {
