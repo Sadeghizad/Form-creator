@@ -22,11 +22,14 @@ class IsOwner(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.method == 'POST':
             return request.user and request.user.is_authenticated
+
         
         return True  
 
     def has_object_permission(self, request, view, obj):
-
+        if request.method == 'GET':
+            return True
+           
         return obj.user == request.user
 
 
@@ -47,6 +50,9 @@ class OptionViewSet(viewsets.ModelViewSet):
     serializer_class = OptionSerializer
     permission_classes = [IsOwner]
 
+    def get_queryset(self):
+        return Option.objects.filter(user=self.request.user)
+
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
@@ -55,6 +61,9 @@ class QuestionViewSet(viewsets.ModelViewSet):
     queryset = Question.objects.all().order_by("order")
     serializer_class = QuestionSerializer
     permission_classes = [IsOwner]
+
+    def get_queryset(self):
+        return Question.objects.filter(user=self.request.user)
 
     def get_serializer(self, *args, **kwargs):
         kwargs["context"] = self.get_serializer_context()
@@ -69,6 +78,13 @@ class ProcessViewSet(viewsets.ModelViewSet):
     queryset = Process.objects.all()
     serializer_class = ProcessSerializer
     permission_classes = [IsOwner]
+
+    def get_queryset(self):
+        if self.action == 'list':
+            return Process.objects.filter(is_private=False)
+        return Process.objects.all()
+        
+
 
     def get_serializer(self, *args, **kwargs):
         kwargs["context"] = self.get_serializer_context()
@@ -125,6 +141,13 @@ class FormViewSet(viewsets.ModelViewSet):
     queryset = Form.objects.all()
     serializer_class = FormSerializer
     permission_classes = [IsOwner]
+
+    def get_queryset(self):
+        if self.action == 'list':
+            return Form.objects.filter(is_private=False)
+        return Form.objects.all()
+
+
 
     def retrieve(self, request, *args, **kwargs):
         form = self.get_object()
