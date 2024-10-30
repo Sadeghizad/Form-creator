@@ -4,10 +4,12 @@ from django.core.exceptions import ValidationError
 from .models import Form, Process, Question, Option, Answer
 from graphql_jwt.decorators import login_required
 import graphql_jwt
+from django.core.cache import cache
 
 class OptionType(DjangoObjectType):
     class Meta:
         model = Option
+
 
 class QuestionType(DjangoObjectType):
     options = graphene.List(OptionType)
@@ -26,6 +28,7 @@ class ProcessType(DjangoObjectType):
     class Meta:
         model = Process
 
+
 class FormType(DjangoObjectType):
     processes_to_show = graphene.List(ProcessType)
 
@@ -36,9 +39,11 @@ class FormType(DjangoObjectType):
         user = info.context.user
         processes_to_show = []
 
+
         for process_id in self.order:
             try:
                 process = Process.objects.get(pk=process_id)
+                question_ids = process.order
                 question_ids = process.order
                 questions = [Question.objects.get(id=q_id) for q_id in question_ids]
 
@@ -64,6 +69,7 @@ class FormType(DjangoObjectType):
 
         return processes_to_show
 
+
 class Query(graphene.ObjectType):
     form = graphene.Field(FormType, form_id=graphene.ID(required=True), password=graphene.String())
 
@@ -88,6 +94,11 @@ class AnswerInput(graphene.InputObjectType):
     select_ids = graphene.List(graphene.ID)
     text = graphene.String()
     form_id = graphene.ID(required=True)
+    option_id = graphene.ID()
+    select_ids = graphene.List(graphene.ID)
+    text = graphene.String()
+    form_id = graphene.ID(required=True)
+
 
 class AnswerType(DjangoObjectType):
     class Meta:
@@ -103,15 +114,18 @@ class SubmitAnswerMutation(graphene.Mutation):
     def mutate(self, info, input):
         user = info.context.user
 
+
         try:
             question = Question.objects.get(pk=input.question_id)
         except Question.DoesNotExist:
             raise ValidationError("Question not found")
 
+
         try:
             form = Form.objects.get(pk=input.form_id)
         except Form.DoesNotExist:
             raise ValidationError("Form not found")
+
 
         ordered_questions = []
         for process_id in form.order:
@@ -121,16 +135,16 @@ class SubmitAnswerMutation(graphene.Mutation):
             except Process.DoesNotExist:
                 continue
 
+
         if question.id not in ordered_questions:
             raise ValidationError("Question not part of the ordered sequence in this form.")
 
         if form.linear:
             question_index = ordered_questions.index(question.id)
             previous_questions = Answer.objects.filter(
-                form=form,
-                user=user,
-                question_id__in=ordered_questions[:question_index]
+                form=form, user=user, question_id__in=ordered_questions[:question_index]
             ).count()
+
 
             if previous_questions < question_index:
                 raise ValidationError("Answer previous questions in order first.")
@@ -142,16 +156,21 @@ class SubmitAnswerMutation(graphene.Mutation):
                 raise ValidationError("Only the text field should be filled for text questions.")
         elif question.type == 3:  # Single-choice question
             if not input.option_id:
-                raise ValidationError("Option must be filled for single-choice question.")
+                raise ValidationError(
+                    "Option must be filled for single-choice question."
+                )
             if input.text or input.select_ids:
                 raise ValidationError("Only the option field should be filled for single-choice questions.")
         elif question.type == 2:  # Multiple-choice question
             if not input.select_ids:
-                raise ValidationError("Select options must be filled for multiple-choice question.")
+                raise ValidationError(
+                    "Select options must be filled for multiple-choice question."
+                )
             if input.text or input.option_id:
                 raise ValidationError("Only select options should be filled for multiple-choice questions.")
 
         answer = Answer(user=user, question=question, form=form)
+
 
         if input.text:
             answer.text = input.text
@@ -170,6 +189,7 @@ class Mutation(graphene.ObjectType):
     token_auth = graphql_jwt.ObtainJSONWebToken.Field()
     verify_token = graphql_jwt.Verify.Field()
     refresh_token = graphql_jwt.Refresh.Field()
+
 
 schema = graphene.Schema(query=Query, mutation=Mutation)
 
