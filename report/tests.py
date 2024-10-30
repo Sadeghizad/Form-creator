@@ -7,7 +7,7 @@ from report.tasks import generate_admin_report
 from rest_framework.test import APITestCase
 from django.urls import reverse
 from unittest.mock import patch
-from form.models import Form, Process, Question, Answer,Options
+from form.models import Form, Process, Question, Answer,Option
 from user.models import User
 
 
@@ -38,7 +38,7 @@ class AdminReportTest(TestCase):
         self.assertTrue(set(report.report_data.keys()).issuperset(expected_keys))
 
 
-class UserReportTest(TestCase):
+class UserReportTest(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='testuser', password='testpass')
         self.client.force_authenticate(user=self.user)
@@ -56,9 +56,9 @@ class UserReportTest(TestCase):
         q1=Question.objects.create(user=user,text="k",type=3,required=False,order=[1,2,3])
         q2=Question.objects.create(user=user,text="k",type=2,required=False,order=[1,2,3])
         q3=Question.objects.create(user=user,text="k",type=1,required=False)
-        opt1=Options.objects.create(user=user,text='a')
-        opt2=Options.objects.create(user=user,text='b')
-        opt3=Options.objects.create(user=user,text='c')
+        opt1=Option.objects.create(user=user,text='a')
+        opt2=Option.objects.create(user=user,text='b')
+        opt3=Option.objects.create(user=user,text='c')
         Answer.objects.create(user=user,question=q1,form=form,option=opt1)
         Answer.objects.create(user=user,question=q1,form=form,option=opt2)
         Answer.objects.create(user=user,question=q1,form=form,option=opt3)

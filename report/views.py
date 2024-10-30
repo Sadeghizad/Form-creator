@@ -2,9 +2,11 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from report.tasks import generate_admin_report
-from .models import Report,UserViewQuestion,UserViewForm
+from .models import Report,UserViewQuestion,UserViewForm,AdminReport
 from form.models import Answer,Question
+from rest_framework.permissions import IsAdmin
 class AdminReportView(APIView):
+    permission_classes =IsAdmin
     def post(self, request):
         # Trigger the Celery task to update the form stats
         generate_admin_report.delay()
@@ -13,7 +15,8 @@ class AdminReportView(APIView):
             {"message": "admin report update initiated. Check logs for progress."},
             status=status.HTTP_200_OK
         )
-
+    def get(self,request):
+        return Response(AdminReport.objects.latest().report_data,status=status.HTTP_200_OK)
 class UserReport(APIView):
     def post(self,request):
         formid=request.data.get("form_id")
@@ -50,3 +53,7 @@ class UserReport(APIView):
                 if not questions[question_id]['ans']:
                     questions[question_id]['ans']=[]
                 questions[question_id]['ans'].append(text)
+        return Response(
+            {"report": report},
+            status=status.HTTP_200_OK
+        )

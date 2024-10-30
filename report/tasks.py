@@ -70,6 +70,4 @@ def generate_admin_report():
         },
     }
     AdminReport.objects.create(timestamp=now, report_data=report_data)
-    # Save the report to a database model or cache (optional)
-    # You can also log it or save it as a JSON file
     return json.dumps(report_data)
