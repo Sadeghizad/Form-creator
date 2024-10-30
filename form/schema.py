@@ -100,6 +100,8 @@ class Query(graphene.ObjectType):
             if form.is_private and form.password != password:
                 raise ValidationError("Invalid password for the form.")
 
+            UserViewForm.objects.get_or_create(user=info.context.user, form=form)    
+
             info.context.form_instance = (
                 form  
             )

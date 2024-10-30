@@ -27,7 +27,7 @@ services:
              gunicorn core.wsgi:application --bind 0.0.0.0:8000"
     volumes:
       - .:/app
-      - ./django_static:/usr/share/nginx/html/django_static
+      - ./django_static:/app/static
     ports:
       - "8000:8000"
     depends_on:
@@ -79,6 +79,6 @@ networks:
 volumes:
   postgres_data:
   media_volume:
-  static_volume:
+  
 
 
