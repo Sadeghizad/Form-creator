@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAdminUser
 class AdminReportView(APIView):
     permission_classes =IsAdminUser
     def post(self, request):
+        # Trigger the Celery task to update the form stats
         generate_admin_report.delay()
 
         return Response(
@@ -30,7 +31,11 @@ class UserReport(APIView):
         else:
             answers = Answer.objects.filter(form_id=formid)
             report["form_id"]=formid
-            report["views"]=UserViewForm.objects.filter(form_id=formid).count()
+            try:
+                report["views"]=UserViewForm.objects.filter(form_id=formid).count()
+            except:
+                report["views"]=0
+
             report['questions']={}
             questions={}
         for answer in answers:
@@ -43,7 +48,11 @@ class UserReport(APIView):
                 option_ids = list(answer.select.all())
             if not answer.text:
                 answer.text = None
-            questions[question_id]['views']=UserViewQuestion.objects.filter(question_id=question_id).count() or 0
+            try:    
+                questions[question_id]['views']=UserViewQuestion.objects.filter(question_id=question_id).count()
+            except:
+                questions[question_id]['views']=0
+
             options={}
             for opt in option_ids:
                 opt=Question.objects.get(id=question_id).order.index(opt)

@@ -27,7 +27,7 @@ services:
              gunicorn core.wsgi:application --bind 0.0.0.0:8000"
     volumes:
       - .:/app
-      - static_volume:/app/static
+      - ./django_static:/usr/share/nginx/html/django_static
     ports:
       - "8000:8000"
     depends_on:
@@ -39,9 +39,11 @@ services:
       DATABASE_USER: postgres
       DATABASE_PASSWORD: postgres
       REDIS_HOST: redis
-      STATIC_ROOT: /app/static  # Specify STATIC_ROOT for collectstatic
+      STATIC_ROOT: /app/static  
     networks:
-      - app-network  
+      - app-network 
+    env_file:
+      - .env     
 
   worker:
     build: .
@@ -78,3 +80,5 @@ volumes:
   postgres_data:
   media_volume:
   static_volume:
+
+

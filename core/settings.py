@@ -12,11 +12,27 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 from datetime import timedelta
+import environ
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+
+# print("SECRET_KEY:", os.getenv('SECRET_KEY'))
+   
+
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# env = environ.Env()
+# environ.Env.read_env()  # loads from .env
+
+#SECRET_KEY = env('SECRET_KEY')
 SECRET_KEY = os.getenv('SECRET_KEY')
-DEBUG = os.getenv('SECRET_KEY')
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS') + ['localhost','127.0.0.1']
+DEBUG = os.getenv('DEBUG', 'False')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',') + ['localhost', '127.0.0.1']
 AUTH_USER_MODEL = 'user.User'
 REST_AUTH_REGISTER_SERIALIZERS = {
     'REGISTER_SERIALIZER': 'user.serializers.CustomRegisterSerializer',
@@ -61,7 +77,6 @@ INSTALLED_APPS = [
     'user',
     'form',
     'report',
-    'channels',
 ]
 SITE_ID = 1
 MIDDLEWARE = [
@@ -144,8 +159,8 @@ LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_URL = '/django_static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'django_static')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

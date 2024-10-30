@@ -17,6 +17,7 @@ Django
 django-allauth
 djangorestframework
 djangorestframework-simplejwt
+django-environ==0.11.2
 et-xmlfile
 filelock==3.15.4
 fsspec==2024.6.1
@@ -44,3 +45,4 @@ django-filter
 qrcode==8.0
 django-graphql-jwt==0.4.0
 django_redis
+python-dotenv==1.0.1

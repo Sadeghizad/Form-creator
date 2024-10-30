@@ -103,11 +103,11 @@ class Query(graphene.ObjectType):
             info.context.form_instance = (
                 form  
             )
-            cached_form = cache.get(f"form_{form_id}")
-            if cached_form:
-                return cached_form
+            # cached_form = cache.get(f"form_{form_id}")
+            # if cached_form:
+            #     return cached_form
             
-            cache.set(f"form_{form_id}", form, 300)
+            # cache.set(f"form_{form_id}", form, 300)
             return form
 
         except Form.DoesNotExist:
