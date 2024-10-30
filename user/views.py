@@ -84,8 +84,8 @@ class Update2FASettingsView(APIView):
 
     def post(self, request):
         user = request.user
-        enable_2fa = request.data.get("enable_2fa", False)
-        use_email_for_2fa = request.data.get("use_email_for_2fa", False)
+        enable_2fa = request.data.get("enable_2fa")
+        use_email_for_2fa = request.data.get("use_email_for_2fa")
 
         user.enable_2fa = enable_2fa
         user.use_email_for_2fa = use_email_for_2fa

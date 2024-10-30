@@ -11,7 +11,7 @@ from rest_framework import permissions
 from django.urls import reverse
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from django.core.exceptions import PermissionDenied
-
+from report.models import Report
 
 class IsOwner(permissions.BasePermission):
     """
@@ -72,7 +72,8 @@ class QuestionViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
 
         serializer.save(user=self.request.user)
-
+    # def perform_update(self, serializer):
+    #     Report.objects.delete(form=)
 
 class ProcessViewSet(viewsets.ModelViewSet):
     queryset = Process.objects.all()

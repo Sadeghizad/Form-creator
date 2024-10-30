@@ -10,7 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
-import dj_database_url
 from pathlib import Path
 from datetime import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -27,12 +26,7 @@ SECRET_KEY = 'django-insecure-$t72iij&%a^6g%c6+2i0tw*y_gkcg2^ew5w1f%5dliscwaev&^
 # SECURITY WARNING: don't run with debug turned on in production!
 #DEBUG = os.environ.get("DEBUG", "0") == "1"
 DEBUG = True
-ALLOWED_HOSTS = ["127.0.0.1", "0.0.0.0"]
-if os.environ.get("ALLOWED_HOSTS") is not None:
-    try:
-        ALLOWED_HOSTS += os.environ.get("ALLOWED_HOSTS").split(",")
-    except Exception as e:
-        print("Cant set ALLOWED_HOSTS, using default instead")
+ALLOWED_HOSTS = []
 
 AUTH_USER_MODEL = 'user.User'
 REST_AUTH_REGISTER_SERIALIZERS = {

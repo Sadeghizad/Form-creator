@@ -1,49 +1,9 @@
 from celery import shared_task
-from services.neo4j_service import neo4j_service
 from form.models import User, Form, Process, Question, Answer
 from django.utils import timezone
 from datetime import timedelta
 import json
-
-@shared_task
-def update_form_stats():
-    # Fetch new answers
-    new_answers = Answer.objects.filter(created_at__gte=last_run_timestamp)
-
-    # Aggregate and update stats in Neo4j
-    for answer in new_answers:
-        form_id = answer.question.form.id
-        question_id = answer.question.id
-        if answer.option:
-            option_id = answer.option.id
-        else:
-            option_id = None
-        
-        # Build the data structure similar to what you described
-        data = {
-            "question": question_id,
-            "option": option_id,
-            "answer_text": answer.text,
-        }
-        
-        # Update the Neo4j database
-        query = """
-        MERGE (f:Form {id: $form_id})
-        MERGE (q:Question {id: $question_id})
-        MERGE (f)-[:HAS_QUESTION]->(q)
-        MERGE (o:Option {id: $option_id})
-        MERGE (q)-[:HAS_OPTION]->(o)
-        SET o.count = coalesce(o.count, 0) + 1
-        """
-        parameters = {
-            "form_id": form_id,
-            "question_id": question_id,
-            "option_id": option_id
-        }
-        neo4j_service.execute_query(query, parameters)
-
-    print("Form stats updated.")
-
+from .models import AdminReport
 @shared_task
 def generate_admin_report():
     now = timezone.now()
@@ -110,6 +70,4 @@ def generate_admin_report():
         },
     }
     AdminReport.objects.create(timestamp=now, report_data=report_data)
-    # Save the report to a database model or cache (optional)
-    # You can also log it or save it as a JSON file
     return json.dumps(report_data)
