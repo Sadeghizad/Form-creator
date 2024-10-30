@@ -2,7 +2,7 @@ import graphene
 from graphene_django.types import DjangoObjectType
 from django.core.exceptions import ValidationError
 from .models import Form, Process, Question, Option, Answer
-from report.models import  UserViewForm, UserViewQuestion
+from report.models import UserViewForm, UserViewQuestion
 from graphql_jwt.decorators import login_required
 from django.core.cache import cache
 import graphql_jwt
@@ -59,7 +59,6 @@ class FormType(DjangoObjectType):
                     if unanswered_questions:
                         next_question = unanswered_questions[0]
 
-                        
                         UserViewQuestion.objects.get_or_create(
                             user=user, question=next_question
                         )
@@ -67,7 +66,7 @@ class FormType(DjangoObjectType):
                         processes_to_show.append(process)
                         break
                 else:
-                    
+
                     for question in questions:
                         UserViewQuestion.objects.get_or_create(
                             user=user, question=question
@@ -86,35 +85,28 @@ class Query(graphene.ObjectType):
     form = graphene.Field(
         FormType, form_id=graphene.ID(required=True), password=graphene.String()
     )
-    previous_questions = graphene.List(
-                QuestionType, form_id=graphene.ID(required=True)
-            )
+    previous_questions = graphene.List(QuestionType, form_id=graphene.ID(required=True))
 
     @login_required
     def resolve_form(self, info, form_id, password=None):
         try:
             form = Form.objects.get(pk=form_id)
 
-            
-            
             if form.is_private and form.password != password:
                 raise ValidationError("Invalid password for the form.")
 
-            UserViewForm.objects.get_or_create(user=info.context.user, form=form)    
+            UserViewForm.objects.get_or_create(user=info.context.user, form=form)
 
-            info.context.form_instance = (
-                form  
-            )
+            info.context.form_instance = form
             # cached_form = cache.get(f"form_{form_id}")
             # if cached_form:
             #     return cached_form
-            
+
             # cache.set(f"form_{form_id}", form, 300)
             return form
 
         except Form.DoesNotExist:
             raise ValidationError("Form not found.")
-
 
     @login_required
     def resolve_previous_questions(self, info, form_id):
@@ -133,15 +125,16 @@ class Query(graphene.ObjectType):
             except Process.DoesNotExist:
                 continue
 
-        answered_question_ids = Answer.objects.filter(
-            form=form, user=user
-        ).values_list("question_id", flat=True)
+        answered_question_ids = Answer.objects.filter(form=form, user=user).values_list(
+            "question_id", flat=True
+        )
 
         previous_questions = [
             Question.objects.get(pk=q_id)
-            for q_id in ordered_questions if q_id in answered_question_ids
+            for q_id in ordered_questions
+            if q_id in answered_question_ids
         ]
-        return previous_questions  
+        return previous_questions
 
 
 class AnswerInput(graphene.InputObjectType):
@@ -199,14 +192,14 @@ class SubmitAnswerMutation(graphene.Mutation):
             if previous_questions < question_index:
                 raise ValidationError("Answer previous questions in order first.")
 
-        if question.type == 1:  
+        if question.type == 1:
             if not input.text:
                 raise ValidationError("Text field must be filled for text question.")
             if input.option_id or input.select_ids:
                 raise ValidationError(
                     "Only the text field should be filled for text questions."
                 )
-        elif question.type == 3:  
+        elif question.type == 3:
             if not input.option_id:
                 raise ValidationError(
                     "Option must be filled for single-choice question."
@@ -215,7 +208,7 @@ class SubmitAnswerMutation(graphene.Mutation):
                 raise ValidationError(
                     "Only the option field should be filled for single-choice questions."
                 )
-        elif question.type == 2:  
+        elif question.type == 2:
             if not input.select_ids:
                 raise ValidationError(
                     "Select options must be filled for multiple-choice question."
@@ -226,11 +219,15 @@ class SubmitAnswerMutation(graphene.Mutation):
                 )
 
         answer, created = Answer.objects.update_or_create(
-            user=user, question=question, form=form,
+            user=user,
+            question=question,
+            form=form,
             defaults={
-                'text': input.text,
-                'option': Option.objects.get(pk=input.option_id) if input.option_id else None,
-            }
+                "text": input.text,
+                "option": (
+                    Option.objects.get(pk=input.option_id) if input.option_id else None
+                ),
+            },
         )
 
         if input.select_ids:

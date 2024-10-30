@@ -9,17 +9,25 @@ from django.core.mail import send_mail
 
 from user.apps import send_custom_email
 
+
 def validate_phone_number(value):
-    reg = re.compile(r'^(09\d{9}|\+989\d{9}|00989\d{9})$')
-    if not reg.match(value) :
-        raise ValidationError('Your Phone Number is incorrect')
+    reg = re.compile(r"^(09\d{9}|\+989\d{9}|00989\d{9})$")
+    if not reg.match(value):
+        raise ValidationError("Your Phone Number is incorrect")
+
 
 class User(AbstractUser):
     role = models.CharField(
         max_length=20, choices=[("admin", "Admin"), ("user", "User")]
     )
     updated_at = models.DateTimeField(auto_now=True)
-    phone_number = models.CharField(max_length=13, validators=[validate_phone_number], unique=True, null=True, blank=True)
+    phone_number = models.CharField(
+        max_length=13,
+        validators=[validate_phone_number],
+        unique=True,
+        null=True,
+        blank=True,
+    )
 
     enable_2fa = models.BooleanField(default=False)
     use_email_for_2fa = models.BooleanField(default=False)
@@ -28,7 +36,7 @@ class User(AbstractUser):
 
     def generate_totp_secret(self):
         if not self.totp_secret:
-            self.totp_secret = pyotp.random_base32()  
+            self.totp_secret = pyotp.random_base32()
             self.save()
         return self.totp_secret
 
@@ -52,7 +60,8 @@ class User(AbstractUser):
             recipient_list=[self.email],
         )
         return pin
-    
+
+
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     bio = models.CharField(max_length=255, null=True, blank=True)

@@ -13,6 +13,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from django.http import HttpResponse
 
+
 class CustomLoginView(LoginView):
     permission_classes = [AllowAny]
     serializer_class = CustomLoginSerializer
@@ -40,11 +41,11 @@ def password_reset_confirm_view(request, *args, **kwargs):
     return PasswordResetConfirmView.as_view()(request, *args, **kwargs)
 
 
-
 class CustomRegisterViewSet(viewsets.ViewSet):
     """
     A viewset for registering a new user with an additional phone number field.
     """
+
     permission_classes = [AllowAny]
     serializer_class = CustomRegisterSerializer
 
@@ -64,20 +65,21 @@ class CustomRegisterViewSet(viewsets.ViewSet):
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
+
 class GenerateQRView(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
 
     def list(self, request):
         user = request.user
-        user.generate_totp_secret()  
+        user.generate_totp_secret()
         uri = user.get_totp_uri()
 
-        
         qr = qrcode.make(uri)
         stream = BytesIO()
         qr.save(stream, "PNG")
         return HttpResponse(stream.getvalue(), content_type="image/png")
+
 
 class Update2FASettingsView(APIView):
     permission_classes = [IsAuthenticated]
@@ -91,7 +93,7 @@ class Update2FASettingsView(APIView):
         user.use_email_for_2fa = use_email_for_2fa
 
         if enable_2fa and not use_email_for_2fa:
-            user.generate_totp_secret()  
+            user.generate_totp_secret()
 
         user.save()
         return Response({"message": "2FA settings updated successfully."})

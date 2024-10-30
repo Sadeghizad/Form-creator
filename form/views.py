@@ -13,6 +13,7 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from django.core.exceptions import PermissionDenied
 from report.models import Report
 
+
 class IsOwner(permissions.BasePermission):
     """
     Custom permission to only allow owners of an object to edit or delete it.
@@ -20,18 +21,16 @@ class IsOwner(permissions.BasePermission):
     """
 
     def has_permission(self, request, view):
-        if request.method == 'POST':
+        if request.method == "POST":
             return request.user and request.user.is_authenticated
 
-        
-        return True  
+        return True
 
     def has_object_permission(self, request, view, obj):
-        if request.method == 'GET':
+        if request.method == "GET":
             return True
-           
-        return obj.user == request.user
 
+        return obj.user == request.user
 
 
 class IsAdmin(permissions.BasePermission):
@@ -72,8 +71,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
 
         serializer.save(user=self.request.user)
-    
-    
+
 
 class ProcessViewSet(viewsets.ModelViewSet):
     queryset = Process.objects.all()
@@ -81,11 +79,9 @@ class ProcessViewSet(viewsets.ModelViewSet):
     permission_classes = [IsOwner]
 
     def get_queryset(self):
-        if self.action == 'list':
+        if self.action == "list":
             return Process.objects.filter(is_private=False)
         return Process.objects.all()
-        
-
 
     def get_serializer(self, *args, **kwargs):
         kwargs["context"] = self.get_serializer_context()
@@ -144,11 +140,9 @@ class FormViewSet(viewsets.ModelViewSet):
     permission_classes = [IsOwner]
 
     def get_queryset(self):
-        if self.action == 'list':
+        if self.action == "list":
             return Form.objects.filter(is_private=False)
         return Form.objects.all()
-
-
 
     def retrieve(self, request, *args, **kwargs):
         form = self.get_object()
@@ -172,7 +166,6 @@ class FormViewSet(viewsets.ModelViewSet):
             reverse("form-detail", args=[form.id])
         )
         form.save()
-
 
 
 class AnswerSubmit(viewsets.ModelViewSet):
