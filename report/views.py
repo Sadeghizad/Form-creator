@@ -4,9 +4,9 @@ from rest_framework import status
 from report.tasks import generate_admin_report
 from .models import Report,UserViewQuestion,UserViewForm,AdminReport
 from form.models import Answer,Question
-from rest_framework.permissions import IsAdmin
+from rest_framework.permissions import IsAdminUser
 class AdminReportView(APIView):
-    permission_classes =IsAdmin
+    permission_classes =IsAdminUser
     def post(self, request):
         # Trigger the Celery task to update the form stats
         generate_admin_report.delay()
@@ -41,10 +41,10 @@ class UserReport(APIView):
             if answer.option:
                 option_ids = list(answer.option.id)
             if answer.select:
-                option_ids = list(answer.select)
+                option_ids = list(answer.select.all())
             if not answer.text:
                 answer.text = None
-            questions[question_id]['views']=UserViewQuestion.objects.filter(form_id=formid).count()
+            questions[question_id]['views']=UserViewQuestion.objects.filter(question_id=question_id).count() or 0
             options={}
             for opt in option_ids:
                 opt=Question.objects.get(id=question_id).order.index(opt)
