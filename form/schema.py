@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from .models import Form, Process, Question, Option, Answer
 from graphql_jwt.decorators import login_required
 import graphql_jwt
+from django.core.cache import cache
 
 
 class OptionType(DjangoObjectType):
@@ -44,10 +45,10 @@ class FormType(DjangoObjectType):
             try:
                 process = Process.objects.get(pk=process_id)
                 question_ids = process.order
+                question_ids = process.order
                 questions = [Question.objects.get(id=q_id) for q_id in question_ids]
 
                 if self.linear:
-
                     answered_question_ids = Answer.objects.filter(
                         form=self, user=user, question__in=questions
                     ).values_list("question_id", flat=True)
@@ -63,7 +64,6 @@ class FormType(DjangoObjectType):
                         processes_to_show.append(process)
                         break
                 else:
-
                     process.questions_to_show = questions
                     processes_to_show.append(process)
 
@@ -74,33 +74,34 @@ class FormType(DjangoObjectType):
 
 
 class Query(graphene.ObjectType):
-    form = graphene.Field(FormType, form_id=graphene.ID(required=True))
+    form = graphene.Field(
+        FormType, form_id=graphene.ID(required=True), password=graphene.String()
+    )
 
     @login_required
-    def resolve_form(self, info, form_id):
-        user = info.context.user
-        if not user.is_authenticated:
-            raise Exception("Authentication required")
+    def resolve_form(self, info, form_id, password=None):
+        try:
+            form = Form.objects.get(pk=form_id)
 
-        form = Form.objects.get(pk=form_id)
+            # Check if the form is private and validate the password
+            if form.is_private and form.password != password:
+                raise ValidationError("Invalid password for the form.")
 
-        info.context.form_instance = form
+            info.context.form_instance = (
+                form  # Store form in context if needed elsewhere
+            )
+            return form
 
-        processes_to_show = []
-        if form.order:
-            for process_id in form.order:
-                try:
-                    process_instance = Process.objects.get(pk=process_id)
-                    processes_to_show.append(process_instance)
-                except Process.DoesNotExist:
-                    continue
-
-        form.processes_to_show = processes_to_show
-        return form
+        except Form.DoesNotExist:
+            raise ValidationError("Form not found.")
 
 
 class AnswerInput(graphene.InputObjectType):
     question_id = graphene.ID(required=True)
+    option_id = graphene.ID()
+    select_ids = graphene.List(graphene.ID)
+    text = graphene.String()
+    form_id = graphene.ID(required=True)
     option_id = graphene.ID()
     select_ids = graphene.List(graphene.ID)
     text = graphene.String()
@@ -154,14 +155,14 @@ class SubmitAnswerMutation(graphene.Mutation):
             if previous_questions < question_index:
                 raise ValidationError("Answer previous questions in order first.")
 
-        if question.type == 1:
+        if question.type == 1:  # Text-based question
             if not input.text:
                 raise ValidationError("Text field must be filled for text question.")
             if input.option_id or input.select_ids:
                 raise ValidationError(
                     "Only the text field should be filled for text questions."
                 )
-        elif question.type == 3:
+        elif question.type == 3:  # Single-choice question
             if not input.option_id:
                 raise ValidationError(
                     "Option must be filled for single-choice question."
@@ -170,7 +171,7 @@ class SubmitAnswerMutation(graphene.Mutation):
                 raise ValidationError(
                     "Only the option field should be filled for single-choice questions."
                 )
-        elif question.type == 2:
+        elif question.type == 2:  # Multiple-choice question
             if not input.select_ids:
                 raise ValidationError(
                     "Select options must be filled for multiple-choice question."
