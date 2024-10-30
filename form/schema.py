@@ -2,9 +2,10 @@ import graphene
 from graphene_django.types import DjangoObjectType
 from django.core.exceptions import ValidationError
 from .models import Form, Process, Question, Option, Answer
+from report.models import  UserViewForm, UserViewQuestion
 from graphql_jwt.decorators import login_required
-import graphql_jwt
 from django.core.cache import cache
+import graphql_jwt
 
 
 class OptionType(DjangoObjectType):
@@ -44,9 +45,7 @@ class FormType(DjangoObjectType):
         for process_id in self.order:
             try:
                 process = Process.objects.get(pk=process_id)
-                question_ids = process.order
-                question_ids = process.order
-                questions = [Question.objects.get(id=q_id) for q_id in question_ids]
+                questions = [Question.objects.get(id=q_id) for q_id in process.order]
 
                 if self.linear:
                     answered_question_ids = Answer.objects.filter(
@@ -56,14 +55,24 @@ class FormType(DjangoObjectType):
                     unanswered_questions = [
                         q for q in questions if q.id not in answered_question_ids
                     ]
-                    process.questions_to_show = (
-                        unanswered_questions[:1] if unanswered_questions else []
-                    )
 
-                    if process.questions_to_show:
+                    if unanswered_questions:
+                        next_question = unanswered_questions[0]
+
+                        
+                        UserViewQuestion.objects.get_or_create(
+                            user=user, question=next_question
+                        )
+                        process.questions_to_show = [next_question]
                         processes_to_show.append(process)
                         break
                 else:
+                    
+                    for question in questions:
+                        UserViewQuestion.objects.get_or_create(
+                            user=user, question=question
+                        )
+
                     process.questions_to_show = questions
                     processes_to_show.append(process)
 
@@ -77,12 +86,16 @@ class Query(graphene.ObjectType):
     form = graphene.Field(
         FormType, form_id=graphene.ID(required=True), password=graphene.String()
     )
+    previous_questions = graphene.List(
+                QuestionType, form_id=graphene.ID(required=True)
+            )
 
     @login_required
     def resolve_form(self, info, form_id, password=None):
         try:
             form = Form.objects.get(pk=form_id)
 
+            
             
             if form.is_private and form.password != password:
                 raise ValidationError("Invalid password for the form.")
@@ -101,12 +114,36 @@ class Query(graphene.ObjectType):
             raise ValidationError("Form not found.")
 
 
+    @login_required
+    def resolve_previous_questions(self, info, form_id):
+        user = info.context.user
+
+        try:
+            form = Form.objects.get(pk=form_id)
+        except Form.DoesNotExist:
+            raise ValidationError("Form not found.")
+
+        ordered_questions = []
+        for process_id in form.order:
+            try:
+                process = Process.objects.get(pk=process_id)
+                ordered_questions.extend(process.order)
+            except Process.DoesNotExist:
+                continue
+
+        answered_question_ids = Answer.objects.filter(
+            form=form, user=user
+        ).values_list("question_id", flat=True)
+
+        previous_questions = [
+            Question.objects.get(pk=q_id)
+            for q_id in ordered_questions if q_id in answered_question_ids
+        ]
+        return previous_questions  
+
+
 class AnswerInput(graphene.InputObjectType):
     question_id = graphene.ID(required=True)
-    option_id = graphene.ID()
-    select_ids = graphene.List(graphene.ID)
-    text = graphene.String()
-    form_id = graphene.ID(required=True)
     option_id = graphene.ID()
     select_ids = graphene.List(graphene.ID)
     text = graphene.String()
@@ -186,15 +223,16 @@ class SubmitAnswerMutation(graphene.Mutation):
                     "Only select options should be filled for multiple-choice questions."
                 )
 
-        answer = Answer(user=user, question=question, form=form)
+        answer, created = Answer.objects.update_or_create(
+            user=user, question=question, form=form,
+            defaults={
+                'text': input.text,
+                'option': Option.objects.get(pk=input.option_id) if input.option_id else None,
+            }
+        )
 
-        if input.text:
-            answer.text = input.text
-        elif input.option_id:
-            answer.option = Option.objects.get(pk=input.option_id)
-        elif input.select_ids:
+        if input.select_ids:
             options = Option.objects.filter(pk__in=input.select_ids)
-            answer.save()
             answer.select.set(options)
 
         answer.save()
