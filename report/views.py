@@ -20,7 +20,10 @@ class AdminReportView(APIView):
 class UserReport(APIView):
     def post(self,request):
         formid=request.data.get("form_id")
-        last_report=Report.objects.get(form_id=formid)
+        try:
+            last_report=Report.objects.get(form_id=formid)
+        except:
+            last_report=None
         report={}
         if last_report:
             answers = Answer.objects.filter(form_id=formid,created_at__gte=last_report.timestamp)
