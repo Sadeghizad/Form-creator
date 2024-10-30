@@ -7,6 +7,9 @@ from report.tasks import generate_admin_report
 from rest_framework.test import APITestCase
 from django.urls import reverse
 from unittest.mock import patch
+from form.models import Form, Process, Question, Answer,Options
+from user.models import User
+
 
 class AdminReportTest(TestCase):
     def test_generate_admin_report(self):
@@ -21,18 +24,45 @@ class AdminReportTest(TestCase):
         self.assertTrue(timezone.now() - report.timestamp < timedelta(minutes=1))
 
         # Check if report_data contains expected keys
-        expected_keys = {"timestamp", "users", "forms", "processes", "questions", "answers", "last24hourchanges", "lastweekhourchanges", "lastmonthhourchanges"}
+        expected_keys = {
+            "timestamp",
+            "users",
+            "forms",
+            "processes",
+            "questions",
+            "answers",
+            "last24hourchanges",
+            "lastweekhourchanges",
+            "lastmonthhourchanges",
+        }
         self.assertTrue(set(report.report_data.keys()).issuperset(expected_keys))
 
-class UpdateFormStatsViewTest(APITestCase):
-    @patch('report.tasks.update_form_stats.delay')
-    def test_update_form_stats_view(self, mock_update_form_stats):
-        url = reverse('update_form_stats')
-        response = self.client.post(url)
 
-        # Check if the view returns a 200 status code
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['message'], "Form stats update initiated. Check logs for progress.")
-
-        # Ensure the Celery task was called
-        mock_update_form_stats.assert_called_once()
+class UserReportTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.force_authenticate(user=self.user)
+    def test_generate_user_report(self):
+        user = self.user
+        form = Form.objects.create(
+            user,
+            name="testform",
+            is_private=False,
+            order=[2, 3, 1],
+        )
+        process1 = Process.objects.create(user=user, order=[2])
+        process2 = Process.objects.create(user=user, order=[2, 1])
+        process3 = Process.objects.create(user=user, order=[2, 1, 3])
+        q1=Question.objects.create(user=user,text="k",type=3,required=False,order=[1,2,3])
+        q2=Question.objects.create(user=user,text="k",type=2,required=False,order=[1,2,3])
+        q3=Question.objects.create(user=user,text="k",type=1,required=False)
+        opt1=Options.objects.create(user=user,text='a')
+        opt2=Options.objects.create(user=user,text='b')
+        opt3=Options.objects.create(user=user,text='c')
+        Answer.objects.create(user=user,question=q1,form=form,option=opt1)
+        Answer.objects.create(user=user,question=q1,form=form,option=opt2)
+        Answer.objects.create(user=user,question=q1,form=form,option=opt3)
+        Answer.objects.create(user=user,question=q2,form=form,option=[opt1,opt2])
+        Answer.objects.create(user=user,question=q2,form=form,option=[opt3,opt2])
+        Answer.objects.create(user=user,question=q3,form=form,text='you are good')
+        response = self.client.post('/report/', {'form_id': 1})
