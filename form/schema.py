@@ -10,6 +10,7 @@ class OptionType(DjangoObjectType):
     class Meta:
         model = Option
 
+
 class QuestionType(DjangoObjectType):
     options = graphene.List(OptionType)
 
@@ -17,17 +18,17 @@ class QuestionType(DjangoObjectType):
         model = Question
 
     def resolve_options(self, info):
-        if self.order:  
+        if self.order:
             return Option.objects.filter(id__in=self.order)
         return []
 
-    
 
 class ProcessType(DjangoObjectType):
     questions_to_show = graphene.List(QuestionType)
 
     class Meta:
         model = Process
+
 
 class FormType(DjangoObjectType):
     processes_to_show = graphene.List(ProcessType)
@@ -39,30 +40,30 @@ class FormType(DjangoObjectType):
         user = info.context.user
         processes_to_show = []
 
-        
         for process_id in self.order:
             try:
                 process = Process.objects.get(pk=process_id)
-                question_ids = process.order  
+                question_ids = process.order
                 questions = [Question.objects.get(id=q_id) for q_id in question_ids]
 
                 if self.linear:
-                    
+
                     answered_question_ids = Answer.objects.filter(
-                        form=self,
-                        user=user,
-                        question__in=questions
-                    ).values_list('question_id', flat=True)
-                    
-                    
-                    unanswered_questions = [q for q in questions if q.id not in answered_question_ids]
-                    process.questions_to_show = unanswered_questions[:1] if unanswered_questions else []
-                    
+                        form=self, user=user, question__in=questions
+                    ).values_list("question_id", flat=True)
+
+                    unanswered_questions = [
+                        q for q in questions if q.id not in answered_question_ids
+                    ]
+                    process.questions_to_show = (
+                        unanswered_questions[:1] if unanswered_questions else []
+                    )
+
                     if process.questions_to_show:
                         processes_to_show.append(process)
                         break
                 else:
-              
+
                     process.questions_to_show = questions
                     processes_to_show.append(process)
 
@@ -70,6 +71,7 @@ class FormType(DjangoObjectType):
                 continue
 
         return processes_to_show
+
 
 class Query(graphene.ObjectType):
     form = graphene.Field(FormType, form_id=graphene.ID(required=True))
@@ -81,8 +83,7 @@ class Query(graphene.ObjectType):
             raise Exception("Authentication required")
 
         form = Form.objects.get(pk=form_id)
-        
-      
+
         info.context.form_instance = form
 
         processes_to_show = []
@@ -100,10 +101,11 @@ class Query(graphene.ObjectType):
 
 class AnswerInput(graphene.InputObjectType):
     question_id = graphene.ID(required=True)
-    option_id = graphene.ID() 
-    select_ids = graphene.List(graphene.ID)  
-    text = graphene.String()  
-    form_id = graphene.ID(required=True) 
+    option_id = graphene.ID()
+    select_ids = graphene.List(graphene.ID)
+    text = graphene.String()
+    form_id = graphene.ID(required=True)
+
 
 class AnswerType(DjangoObjectType):
     class Meta:
@@ -120,19 +122,16 @@ class SubmitAnswerMutation(graphene.Mutation):
     def mutate(self, info, input):
         user = info.context.user
 
-        
         try:
             question = Question.objects.get(pk=input.question_id)
         except Question.DoesNotExist:
             raise ValidationError("Question not found")
 
-        
         try:
             form = Form.objects.get(pk=input.form_id)
         except Form.DoesNotExist:
             raise ValidationError("Form not found")
 
-        
         ordered_questions = []
         for process_id in form.order:
             try:
@@ -141,44 +140,48 @@ class SubmitAnswerMutation(graphene.Mutation):
             except Process.DoesNotExist:
                 continue
 
-       
         if question.id not in ordered_questions:
-            raise ValidationError("Question not part of the ordered sequence in this form.")
+            raise ValidationError(
+                "Question not part of the ordered sequence in this form."
+            )
 
-        
         if form.linear:
             question_index = ordered_questions.index(question.id)
             previous_questions = Answer.objects.filter(
-                form=form,
-                user=user,
-                question_id__in=ordered_questions[:question_index]
+                form=form, user=user, question_id__in=ordered_questions[:question_index]
             ).count()
 
-            
             if previous_questions < question_index:
                 raise ValidationError("Answer previous questions in order first.")
 
-       
-        if question.type == 1:  
+        if question.type == 1:
             if not input.text:
                 raise ValidationError("Text field must be filled for text question.")
             if input.option_id or input.select_ids:
-                raise ValidationError("Only the text field should be filled for text questions.")
-        elif question.type == 3:  
+                raise ValidationError(
+                    "Only the text field should be filled for text questions."
+                )
+        elif question.type == 3:
             if not input.option_id:
-                raise ValidationError("Option must be filled for single-choice question.")
+                raise ValidationError(
+                    "Option must be filled for single-choice question."
+                )
             if input.text or input.select_ids:
-                raise ValidationError("Only the option field should be filled for single-choice questions.")
-        elif question.type == 2: 
+                raise ValidationError(
+                    "Only the option field should be filled for single-choice questions."
+                )
+        elif question.type == 2:
             if not input.select_ids:
-                raise ValidationError("Select options must be filled for multiple-choice question.")
+                raise ValidationError(
+                    "Select options must be filled for multiple-choice question."
+                )
             if input.text or input.option_id:
-                raise ValidationError("Only select options should be filled for multiple-choice questions.")
+                raise ValidationError(
+                    "Only select options should be filled for multiple-choice questions."
+                )
 
-        
         answer = Answer(user=user, question=question, form=form)
 
-       
         if input.text:
             answer.text = input.text
         elif input.option_id:
@@ -192,12 +195,11 @@ class SubmitAnswerMutation(graphene.Mutation):
         return SubmitAnswerMutation(answer=answer)
 
 
-
-
 class Mutation(graphene.ObjectType):
     submit_answer = SubmitAnswerMutation.Field()
     token_auth = graphql_jwt.ObtainJSONWebToken.Field()
     verify_token = graphql_jwt.Verify.Field()
     refresh_token = graphql_jwt.Refresh.Field()
+
 
 schema = graphene.Schema(query=Query, mutation=Mutation)
