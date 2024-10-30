@@ -83,17 +83,17 @@ class Query(graphene.ObjectType):
         try:
             form = Form.objects.get(pk=form_id)
 
-            # Check if the form is private and validate the password
+            
             if form.is_private and form.password != password:
                 raise ValidationError("Invalid password for the form.")
 
             info.context.form_instance = (
-                form  # Store form in context if needed elsewhere
+                form  
             )
             cached_form = cache.get(f"form_{form_id}")
             if cached_form:
                 return cached_form
-            # Cache the result for 5 minutes
+            
             cache.set(f"form_{form_id}", form, 300)
             return form
 
@@ -160,14 +160,14 @@ class SubmitAnswerMutation(graphene.Mutation):
             if previous_questions < question_index:
                 raise ValidationError("Answer previous questions in order first.")
 
-        if question.type == 1:  # Text-based question
+        if question.type == 1:  
             if not input.text:
                 raise ValidationError("Text field must be filled for text question.")
             if input.option_id or input.select_ids:
                 raise ValidationError(
                     "Only the text field should be filled for text questions."
                 )
-        elif question.type == 3:  # Single-choice question
+        elif question.type == 3:  
             if not input.option_id:
                 raise ValidationError(
                     "Option must be filled for single-choice question."
@@ -176,7 +176,7 @@ class SubmitAnswerMutation(graphene.Mutation):
                 raise ValidationError(
                     "Only the option field should be filled for single-choice questions."
                 )
-        elif question.type == 2:  # Multiple-choice question
+        elif question.type == 2:  
             if not input.select_ids:
                 raise ValidationError(
                     "Select options must be filled for multiple-choice question."

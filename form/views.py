@@ -72,8 +72,8 @@ class QuestionViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
 
         serializer.save(user=self.request.user)
-    # def perform_update(self, serializer):
-    #     Report.objects.delete(form=)
+    
+    
 
 class ProcessViewSet(viewsets.ModelViewSet):
     queryset = Process.objects.all()
@@ -174,7 +174,7 @@ class FormViewSet(viewsets.ModelViewSet):
         form.save()
 
 
-# Create your views here.
+
 class AnswerSubmit(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = AnswerSerializer

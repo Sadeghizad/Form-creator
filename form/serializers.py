@@ -69,7 +69,7 @@ class AnswerSerializer(serializers.ModelSerializer):
         option = data.get('option', None)
         text = data.get('text', '').strip()
 
-        # Check if all three fields are blank or None
+        
         if not select and not option and not text:
             raise serializers.ValidationError("At least one of 'select', 'option', or 'text' must be provided.")
         return data        

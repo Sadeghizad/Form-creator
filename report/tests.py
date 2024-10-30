@@ -1,4 +1,4 @@
-# tests.py
+
 from django.test import TestCase
 from django.utils import timezone
 from datetime import timedelta
@@ -13,17 +13,17 @@ from user.models import User
 
 class AdminReportTest(TestCase):
     def test_generate_admin_report(self):
-        # Call the task to generate the report
+        
         generate_admin_report()
 
-        # Verify if an AdminReport instance is created
+        
         self.assertEqual(AdminReport.objects.count(), 1)
 
-        # Check if the timestamp is correct (approximately now)
+        
         report = AdminReport.objects.first()
         self.assertTrue(timezone.now() - report.timestamp < timedelta(minutes=1))
 
-        # Check if report_data contains expected keys
+        
         expected_keys = {
             "timestamp",
             "users",

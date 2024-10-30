@@ -70,10 +70,10 @@ class GenerateQRView(viewsets.ViewSet):
 
     def list(self, request):
         user = request.user
-        user.generate_totp_secret()  # Ensure a TOTP secret exists
+        user.generate_totp_secret()  
         uri = user.get_totp_uri()
 
-        # Generate QR Code
+        
         qr = qrcode.make(uri)
         stream = BytesIO()
         qr.save(stream, "PNG")
@@ -91,7 +91,7 @@ class Update2FASettingsView(APIView):
         user.use_email_for_2fa = use_email_for_2fa
 
         if enable_2fa and not use_email_for_2fa:
-            user.generate_totp_secret()  # Ensure a TOTP secret is generated for Google Authenticator
+            user.generate_totp_secret()  
 
         user.save()
         return Response({"message": "2FA settings updated successfully."})

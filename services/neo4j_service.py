@@ -12,7 +12,7 @@ class Neo4jService:
             result = session.run(query, parameters or {})
             return [record for record in result]
 
-# Initialize Neo4jService instance
+
 neo4j_service = Neo4jService(
     uri="bolt://localhost:7687",
     username="neo4j",

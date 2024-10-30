@@ -49,7 +49,7 @@ class QuestionAPITests(UserTestCase):
             {"text": "Checkbox Question", "type": 2, "order": []},
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        # self.assertIn('order', response.data)
+        
 
     def test_can_only_add_own_questions(self):
         another_user = User.objects.create_user(
@@ -180,7 +180,7 @@ class CategoryTests(APITestCase):
             username="normal_user", password="normal_pass"
         )
 
-        # Admin logs in
+        
         self.client.force_authenticate(user=self.admin_user)
 
     def test_admin_can_create_public_category(self):
@@ -271,7 +271,7 @@ class FormProcessQuestionTests(TestCase):
     def setUp(self):
         self.user = User.objects.create(username="testuser", password="testpassword")
 
-        # Create categories and forms
+        
         self.category = Category.objects.create(
             user=self.user, name="General", description="General category"
         )
@@ -279,7 +279,7 @@ class FormProcessQuestionTests(TestCase):
             user=self.user, name="Linear Form", category=self.category, linear=True
         )
 
-        # Create processes and questions for the form
+        
         self.process1 = Process.objects.create(user=self.user, category=self.category)
         self.process2 = Process.objects.create(user=self.user, category=self.category)
         self.form_linear.order = [self.process1.id, self.process2.id]
@@ -305,7 +305,7 @@ class FormProcessQuestionTests(TestCase):
             text="First answer to question 1",
         )
 
-        # Attempt to create a duplicate answer
+        
         with self.assertRaises(IntegrityError):
             Answer.objects.create(
                 user=self.user,

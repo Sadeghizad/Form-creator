@@ -8,7 +8,6 @@ from rest_framework.permissions import IsAdminUser
 class AdminReportView(APIView):
     permission_classes =IsAdminUser
     def post(self, request):
-        # Trigger the Celery task to update the form stats
         generate_admin_report.delay()
 
         return Response(
