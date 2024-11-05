@@ -179,7 +179,7 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': timedelta(days=1),  
     },
     'generate-weekly-admin-report': {
-        'task': 'your_app.tasks.generate_admin_report',
+        'task': 'report.tasks.generate_admin_report',
         'schedule': timedelta(weeks=1),  
     },
 }

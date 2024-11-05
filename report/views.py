@@ -67,17 +67,4 @@ class UserReport(APIView):
                 question_id=question_id
             ).count()
 
-            options = {}
-            for opt in option_ids:
-                question = Question.objects.get(id=question_id)
-                opt_index = question.order.index(opt.id)  # Use opt.id
-                if opt_index in options:
-                    options[opt_index] += 1
-                else:
-                    options[opt_index] = 1
-
-            questions[q_idstr]["options"] = options
-
-            if text:
-                questions[q_idstr]["ans"].append(text)  # Append answer
         return Response({"report": report}, status=status.HTTP_200_OK)
